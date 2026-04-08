@@ -16,15 +16,15 @@
       --navy:   #0f172a;
       --teal:   #0d9488;
       --teal-light: #14b8a6;
-      --teal-pale:  #ccfbf1;
-      --bg:     #f8fafc;
-      --card:   #ffffff;
-      --body:   #334155;
-      --muted:  #64748b;
-      --border: #e2e8f0;
+      --teal-pale:  rgba(13,148,136,.18);
+      --bg:     #111827;
+      --card:   #1f2937;
+      --body:   #d1d5db;
+      --muted:  #9ca3af;
+      --border: #374151;
       --radius: 12px;
-      --shadow: 0 4px 24px rgba(15,23,42,.08);
-      --shadow-lg: 0 12px 48px rgba(15,23,42,.14);
+      --shadow: 0 4px 24px rgba(0,0,0,.3);
+      --shadow-lg: 0 12px 48px rgba(0,0,0,.4);
     }
 
     html { scroll-behavior: smooth; }
@@ -39,7 +39,7 @@
 
     h1, h2, h3, h4 {
       font-family: 'Playfair Display', Georgia, serif;
-      color: var(--navy);
+      color: #f1f5f9;
       line-height: 1.25;
     }
 
@@ -53,7 +53,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(255,255,255,.92);
+      background: rgba(17,24,39,.96);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
@@ -73,7 +73,7 @@
       font-family: 'Playfair Display', serif;
       font-weight: 700;
       font-size: 1.1rem;
-      color: var(--navy);
+      color: #f1f5f9;
       display: flex;
       align-items: center;
       gap: .5rem;
@@ -103,7 +103,7 @@
       padding: 0 2rem;
     }
 
-    section { padding: 5rem 0; }
+    section { padding: 7rem 0; }
 
     .section-label {
       font-size: .75rem;
@@ -177,7 +177,7 @@
     }
 
     .hero-body {
-      padding: 4rem 2rem 4.5rem;
+      padding: 5.5rem 2rem 6rem;
       max-width: 1100px;
       margin: 0 auto;
     }
@@ -366,7 +366,7 @@
     }
 
     /* ── Framework ────────────────────────────────────────────────── */
-    #framework { background: #fff; }
+    #framework { background: var(--card); }
 
     .cards-grid {
       display: grid;
@@ -376,7 +376,7 @@
     }
 
     .component-card {
-      background: var(--bg);
+      background: var(--navy);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 2rem 1.75rem;
@@ -413,7 +413,7 @@
       font-family: 'Playfair Display', serif;
       font-size: 1.1rem;
       font-weight: 700;
-      color: var(--navy);
+      color: #f1f5f9;
       margin-bottom: .75rem;
     }
 
@@ -424,7 +424,7 @@
     }
 
     .pipeline-wrap {
-      background: var(--bg);
+      background: var(--navy);
       border: 2px dashed var(--border);
       border-radius: var(--radius);
       min-height: 280px;
@@ -511,15 +511,15 @@
     }
 
     tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: #f1faf9; }
+    tbody tr:hover { background: rgba(13,148,136,.08); }
 
     td {
       padding: .85rem 1.25rem;
       color: var(--body);
     }
 
-    .ours-row td { background: #f0fdfa; font-weight: 600; }
-    .ours-row td:first-child { color: var(--teal); }
+    .ours-row td { background: rgba(13,148,136,.12); font-weight: 600; }
+    .ours-row td:first-child { color: var(--teal-light); }
 
     .rank-badge {
       display: inline-flex;
@@ -533,9 +533,9 @@
     }
 
     .rank-1 { background: var(--teal); color: #fff; }
-    .rank-2 { background: #dbeafe; color: #1e40af; }
-    .rank-3 { background: #fef3c7; color: #92400e; }
-    .rank-4 { background: #f1f5f9; color: var(--muted); }
+    .rank-2 { background: #1e3a5f; color: #93c5fd; }
+    .rank-3 { background: #451a03; color: #fcd34d; }
+    .rank-4 { background: #374151; color: var(--muted); }
 
     /* Chart */
     .chart-wrap {
@@ -549,13 +549,13 @@
     .chart-title {
       font-weight: 600;
       font-size: .9rem;
-      color: var(--navy);
+      color: #f1f5f9;
       margin-bottom: 1.25rem;
       font-family: 'Playfair Display', serif;
     }
 
     /* ── Qualitative Examples ────────────────────────────────────── */
-    #examples { background: #fff; }
+    #examples { background: var(--card); }
 
     .examples-grid {
       display: grid;
@@ -564,7 +564,7 @@
     }
 
     .example-card {
-      background: var(--bg);
+      background: var(--navy);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 2rem;
@@ -581,7 +581,7 @@
       font-weight: 700;
       letter-spacing: .08em;
       text-transform: uppercase;
-      color: var(--teal);
+      color: var(--teal-light);
       background: var(--teal-pale);
       padding: .25rem .7rem;
       border-radius: 999px;
@@ -600,7 +600,7 @@
     .example-premise {
       font-weight: 600;
       font-size: .95rem;
-      color: var(--navy);
+      color: #f1f5f9;
       margin-bottom: 1.25rem;
       padding-bottom: 1.25rem;
       border-bottom: 1px solid var(--border);
@@ -812,12 +812,6 @@
         <a href="#" class="btn btn-primary">
           <span>📄</span> Paper
         </a>
-        <a href="#" class="btn btn-outline">
-          <span>💻</span> Code
-        </a>
-        <a href="#" class="btn btn-outline">
-          <span>🤗</span> Demo
-        </a>
         <a href="#citation" class="btn btn-outline">
           <span>📖</span> Cite
         </a>
@@ -834,7 +828,7 @@
           />
           <div style="display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
             <div class="teaser-icon">🎬</div>
-            <div class="teaser-label">Teaser figure — replace with <code style="background:rgba(255,255,255,.1);padding:.1rem .4rem;border-radius:4px;font-size:.8em">assets/teaser.png</code></div>
+            <div class="teaser-label">Teaser figure: replace with <code style="background:rgba(255,255,255,.1);padding:.1rem .4rem;border-radius:4px;font-size:.8em">assets/teaser.png</code></div>
           </div>
         </div>
         <div class="teaser-caption">
@@ -870,8 +864,8 @@
           (2) a <em>Mixture-of-Experts plot generator</em> aligned via Direct Preference Optimization;
           and (3) an <em>Agentic Evaluation module</em> that emulates human critical judgment.
           Together, these components yield consistent improvements across all five NQDs,
-          demonstrating that careful decomposition and alignment can close — and in many cases
-          surpass — the quality gap between small and frontier language models on creative tasks.
+          demonstrating that careful decomposition and alignment can close and in many cases
+          surpass the quality gap between small and frontier language models on creative tasks.
         </p>
       </div>
     </div>
@@ -933,7 +927,7 @@
           onerror="this.style.display='none';"
         />
         <div class="pipeline-placeholder-icon">🗺️</div>
-        <div class="pipeline-placeholder-text">Pipeline diagram — replace with <code>assets/pipeline.png</code></div>
+        <div class="pipeline-placeholder-text">Pipeline diagram: replace with <code>assets/pipeline.png</code></div>
       </div>
     </div>
   </section>
@@ -950,7 +944,7 @@
         <div class="callout-icon">🚀</div>
         <div class="callout-text">
           A <em>3B PlotTwist model</em> outperforms <em>~600B frontier models</em>
-          on creative plot quality — measured holistically across all five Narrative Quality Dimensions.
+          on creative plot quality, measured holistically across all five Narrative Quality Dimensions.
         </div>
       </div>
 
@@ -1031,19 +1025,19 @@
           <div class="example-label">Input Premise</div>
           <div class="example-premise">
             A retired concert pianist discovers her late daughter's unfinished composition
-            hidden inside a secondhand piano — and must decide whether to complete it or let
+            hidden inside a secondhand piano, and must decide whether to complete it or let
             the silence speak for itself.
           </div>
 
           <div class="example-label">Generated Plot</div>
           <p class="example-plot">
-            Eleanor's hands tremble as she lifts the yellowed score from the piano bench —
+            Eleanor's hands tremble as she lifts the yellowed score from the piano bench,
             sixteen bars in her daughter's unmistakable hand, then silence on the staff.
             Each night she sits at the Steinway, the notation blurring through tears she
             refuses to shed, bargaining with memory as much as music. When a young conservatory
             student discovers the manuscript online after Eleanor photographs it by accident,
             the world's hunger for closure forces her to confront whether completion is love
-            or erasure — and whether grief's truest monument is sound or its deliberate absence.
+            or erasure, and whether grief's truest monument is sound or its deliberate absence.
           </p>
         </div>
 
@@ -1065,7 +1059,7 @@
             a novel she thought was buried. Someone has studied her fiction like a playbook,
             and the kidnapped girl's life now runs on a clock set to Mara's own plot structure.
             Racing to predict the next chapter before her shadow self does, she must expose
-            her pseudonym — and the desperate decade that spawned it — to the only detective
+            her pseudonym and the desperate decade that spawned it to the only detective
             who might believe that a thriller novelist is simultaneously the key witness
             and the unwilling co-author of a real crime.
           </p>
@@ -1136,10 +1130,10 @@
       const labels = ['PlotTwist\n(Ours)', 'GPT-4.1', 'Claude 3.5\nSonnet', 'Gemini\n1.5 Pro', 'Llama 3.1\n70B', 'Mistral 7B\n(base)'];
       const scores = [8.74, 8.41, 8.29, 8.12, 7.88, 7.03];
       const bgColors = scores.map((_, i) =>
-        i === 0 ? 'rgba(13,148,136,.9)' : 'rgba(100,116,139,.55)'
+        i === 0 ? 'rgba(13,148,136,.9)' : 'rgba(75,85,99,.65)'
       );
       const borderColors = scores.map((_, i) =>
-        i === 0 ? '#0d9488' : '#94a3b8'
+        i === 0 ? '#0d9488' : '#4b5563'
       );
 
       new Chart(ctx, {
@@ -1173,20 +1167,20 @@
               max: 9.2,
               ticks: {
                 font: { family: 'Inter', size: 11 },
-                color: '#64748b',
+                color: '#9ca3af',
               },
-              grid: { color: 'rgba(226,232,240,.7)' },
+              grid: { color: 'rgba(55,65,81,.7)' },
               title: {
                 display: true,
                 text: 'NQD Score (avg. across 5 dimensions)',
                 font: { family: 'Inter', size: 11 },
-                color: '#94a3b8',
+                color: '#6b7280',
               }
             },
             x: {
               ticks: {
                 font: { family: 'Inter', size: 11 },
-                color: '#64748b',
+                color: '#9ca3af',
               },
               grid: { display: false },
             }
