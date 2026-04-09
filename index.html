@@ -75,7 +75,7 @@
 
     /* ── Container ────────────────────────────────────────────────── */
     .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
-    section { padding: 4.5rem 0; }
+    section { padding: 2.5rem 0; }
 
     .section-label {
       font-size: .72rem; font-weight: 600; letter-spacing: .13em;
@@ -104,7 +104,7 @@
 
     /* ── Hero ─────────────────────────────────────────────────────── */
     #hero { background: var(--navy); color: #fff; padding: 0; overflow: hidden; }
-    .hero-body { padding: 5.5rem 2rem 6rem; max-width: 1100px; margin: 0 auto; }
+    .hero-body { padding: 3rem 2rem 4rem; max-width: 1100px; margin: 0 auto; }
 
     .venue-badge {
       display: inline-flex; align-items: center; gap: .5rem;
@@ -140,12 +140,12 @@
       font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
     }
 
-    .btn-row { display: flex; flex-wrap: nowrap; gap: .75rem; margin-bottom: 2rem; width: 100%; max-width: 100%; overflow-x: auto; }
+    .btn-row { display: flex; flex-wrap: nowrap; gap: .75rem; margin-bottom: 2rem; max-width: 100%; overflow-x: auto; }
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
       padding: .55rem 1.4rem; border-radius: 999px; font-size: .875rem;
       font-weight: 600; cursor: pointer; transition: transform .18s, box-shadow .18s, background .18s;
-      text-decoration: none; white-space: nowrap; flex: 1;
+      text-decoration: none; white-space: nowrap;
     }
     .btn:hover { transform: translateY(-2px); text-decoration: none; }
     .btn-primary { background: var(--teal); color: #fff; box-shadow: 0 4px 16px rgba(13,148,136,.35); }
@@ -466,15 +466,13 @@
       </h1>
 
       <div class="authors" style="display: block; margin-bottom: 2.25rem;">
-        <p style="font-size: 1.05rem; font-weight: 500; color: #cbd5e1; margin-bottom: 0.3rem;">Abhinav Thorat*, Ravi Kolla*, Jyotin Goel, Niranjan Pedanekar</p>
+        <p style="font-size: 1.05rem; font-weight: 500; color: #cbd5e1; margin-bottom: 0.3rem;">Abhinav Thorat, Ravi Kolla, Jyotin Goel, Niranjan Pedanekar</p>
         <p style="font-size: 0.95rem; color: #94a3b8; margin-bottom: 0.5rem;">Sony Research India</p>
-        <p style="font-size: 0.8em; color: var(--muted);">* equal contribution</p>
       </div>
 
       <div class="btn-row">
         <a href="https://arxiv.org/abs/2603.16410" class="btn btn-primary"><span>📄</span> Paper</a>
         <a href="https://github.com/abhinavthorat/plottwist" class="btn btn-primary"><span>💻</span> Code</a>
-        <a href="#" class="btn btn-outline" style="pointer-events: none; opacity: 0.6; cursor: not-allowed;"><span>🤗</span> Demo (Coming Soon)</a>
       </div>
 
       <!-- Stat row -->
