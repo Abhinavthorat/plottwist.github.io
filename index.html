@@ -4,907 +4,1811 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PlotTwist: A Creative Plot Generation Framework with Small Language Models</title>
+  <meta name="description" content="PlotTwist is a structured framework that enables small language models with 3B active parameters to generate premise-conditioned plots competitive with frontier systems. Accepted at LUHME, EMNLP 2026." />
+  <meta property="og:title" content="PlotTwist: A Creative Plot Generation Framework with Small Language Models" />
+  <meta property="og:description" content="Aspect-rating reward modelling, DPO-aligned mixture-of-experts generation, and a cross-family agentic jury. Accepted at LUHME, EMNLP 2026." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230b0f16'/%3E%3Cpath d='M26 72V28h18a14 14 0 0 1 0 28H26' fill='none' stroke='%235eead4' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='68' cy='66' r='7' fill='%23e6b980'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
-    /* ── Reset & Base ─────────────────────────────────────────────── */
+    /* ══ Reset & tokens ══════════════════════════════════════════════ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy:        #0f172a;
-      --teal:        #0d9488;
-      --teal-light:  #14b8a6;
-      --teal-pale:   rgba(13,148,136,.18);
-      --bg:          #111827;
-      --card:        #1f2937;
-      --card2:       #161e2b;
-      --body:        #d1d5db;
-      --muted:       #9ca3af;
-      --border:      #374151;
-      --radius:      12px;
-      --shadow:      0 4px 24px rgba(0,0,0,.35);
-      --shadow-lg:   0 12px 48px rgba(0,0,0,.45);
+      --ink:        #05070b;
+      --bg:         #0b0f16;
+      --panel:      #111722;
+      --panel-2:    #151d29;
+      --panel-3:    #1b2432;
+      --line:       rgba(148,163,184,.13);
+      --line-2:     rgba(148,163,184,.22);
+      --text:       #c3cedd;
+      --strong:     #f2f6fa;
+      --muted:      #8593a7;
+      --faint:      #64748b;
+
+      --teal:       #14b8a6;
+      --teal-l:     #5eead4;
+      --teal-d:     #0d9488;
+      --teal-pale:  rgba(20,184,166,.12);
+      --gold:       #e6b980;
+      --gold-pale:  rgba(230,185,128,.12);
+
+      --r-sm: 8px;
+      --r:    13px;
+      --r-lg: 20px;
+
+      --shadow:    0 6px 28px rgba(0,0,0,.42);
+      --shadow-lg: 0 20px 64px rgba(0,0,0,.55);
+
+      --maxw: 1160px;
+      --readw: 780px;
     }
 
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; scroll-padding-top: 82px; }
 
     body {
-      font-family: 'Inter', sans-serif;
-      background: #090d14;
-      color: var(--body);
-      line-height: 1.65;
-      font-size: 16px;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--ink);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 16.5px;
+      -webkit-font-smoothing: antialiased;
       overflow-wrap: break-word;
-      max-width: 100%;
     }
 
-    .page-wrapper {
-      max-width: 1200px;
-      margin: 0 auto;
-      background: var(--bg);
-      border-left: 1px solid var(--border);
-      border-right: 1px solid var(--border);
-      box-shadow: 0 0 64px rgba(0,0,0,0.5);
-      min-height: 100vh;
-    }
-
-    h1, h2, h3, h4 {
-      font-family: 'Playfair Display', Georgia, serif;
-      color: #f1f5f9;
-      line-height: 1.25;
-    }
-
-    a { color: var(--teal-light); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    h1, h2, h3, h4 { font-family: 'Playfair Display', Georgia, serif; color: var(--strong); line-height: 1.22; font-weight: 700; }
+    a { color: var(--teal-l); text-decoration: none; transition: color .2s; }
+    a:hover { color: #99f6e4; }
     img { max-width: 100%; display: block; }
+    strong { color: var(--strong); font-weight: 600; }
 
-    /* ── Navbar ───────────────────────────────────────────────────── */
+    ::selection { background: rgba(94,234,212,.24); color: #fff; }
+
+    /* ══ Scroll progress ═════════════════════════════════════════════ */
+    #progress {
+      position: fixed; top: 0; left: 0; height: 2px; width: 0%;
+      background: linear-gradient(90deg, var(--teal-d), var(--teal-l));
+      z-index: 200; transition: width .1s linear;
+    }
+
+    /* ══ Page frame ══════════════════════════════════════════════════ */
+    .page-wrapper {
+      max-width: var(--maxw); margin: 0 auto;
+      background: var(--bg);
+      border-left: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      box-shadow: 0 0 90px rgba(0,0,0,.65);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .container { max-width: 1020px; margin: 0 auto; padding: 0 2.25rem; }
+    .prose { max-width: var(--readw); }
+
+    section { padding: 4.25rem 0; border-top: 1px solid var(--line); }
+    section:first-of-type { border-top: none; }
+
+    /* ══ Section headers ═════════════════════════════════════════════ */
+    .sec-head { margin-bottom: 2.25rem; }
+    .sec-label {
+      display: flex; align-items: center; gap: .6rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .7rem; font-weight: 500; letter-spacing: .17em;
+      text-transform: uppercase; color: var(--teal-l); margin-bottom: .85rem;
+    }
+    .sec-label::before {
+      content: ''; width: 22px; height: 1px; background: var(--teal); flex-shrink: 0;
+    }
+    .sec-title { font-size: clamp(1.75rem, 3.2vw, 2.35rem); letter-spacing: -.015em; margin-bottom: .7rem; }
+    .sec-sub { color: var(--muted); font-size: 1.02rem; max-width: var(--readw); }
+
+    /* ══ Nav ═════════════════════════════════════════════════════════ */
     nav {
       position: sticky; top: 0; z-index: 100;
-      background: rgba(17,24,39,.96);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
+      background: rgba(11,15,22,.86);
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      border-bottom: 1px solid var(--line);
     }
     .nav-inner {
-      max-width: 1100px; margin: 0 auto;
-      display: flex; align-items: center; justify-content: space-between;
-      height: 56px;
+      max-width: 1020px; margin: 0 auto; padding: 0 2.25rem;
+      display: flex; align-items: center; justify-content: space-between; height: 60px;
     }
     .nav-brand {
-      font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.1rem;
-      color: #f1f5f9; display: flex; align-items: center; gap: .5rem;
+      font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.14rem;
+      color: var(--strong); letter-spacing: -.01em;
     }
-    .nav-brand .dot { color: var(--teal-light); }
-    .nav-links { display: flex; gap: 1.75rem; list-style: none; }
-    .nav-links a { font-size: .875rem; font-weight: 500; color: var(--muted); transition: color .2s; }
-    .nav-links a:hover { color: var(--teal-light); text-decoration: none; }
+    .nav-brand .dot { color: var(--teal-l); }
+    .nav-links { display: flex; gap: 1.6rem; list-style: none; }
+    .nav-links a {
+      font-size: .845rem; font-weight: 500; color: var(--muted);
+      position: relative; padding: 2px 0;
+    }
+    .nav-links a::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: -3px; height: 1.5px;
+      background: var(--teal-l); transform: scaleX(0); transform-origin: left;
+      transition: transform .25s ease;
+    }
+    .nav-links a:hover { color: var(--strong); }
+    .nav-links a.active { color: var(--teal-l); }
+    .nav-links a.active::after { transform: scaleX(1); }
 
-    /* ── Container ────────────────────────────────────────────────── */
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
-    section { padding: 2.5rem 0; }
-
-    .section-label {
-      font-size: .72rem; font-weight: 600; letter-spacing: .13em;
-      text-transform: uppercase; color: var(--teal-light); margin-bottom: .5rem;
+    /* ══ Hero ════════════════════════════════════════════════════════ */
+    #hero {
+      position: relative; padding: 0; border-top: none;
+      background:
+        radial-gradient(900px 420px at 15% -10%, rgba(20,184,166,.13), transparent 62%),
+        radial-gradient(700px 360px at 92% 6%, rgba(230,185,128,.07), transparent 60%),
+        linear-gradient(180deg, #0d131c 0%, var(--bg) 100%);
+      overflow: hidden;
     }
-    .section-title { font-size: 2rem; font-weight: 700; margin-bottom: .75rem; }
-    .section-divider {
-      width: 3.5rem; height: 3px; background: var(--teal);
-      border-radius: 2px; margin-bottom: 1.5rem;
+    #hero::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(148,163,184,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,.045) 1px, transparent 1px);
+      background-size: 62px 62px;
+      mask-image: radial-gradient(750px 400px at 25% 0%, #000 10%, transparent 78%);
+      -webkit-mask-image: radial-gradient(750px 400px at 25% 0%, #000 10%, transparent 78%);
     }
-
-    /* ── Film-strip ───────────────────────────────────────────────── */
-    .filmstrip {
-      height: 26px;
-      background: repeating-linear-gradient(90deg, transparent 0, transparent 18px, rgba(255,255,255,.05) 18px, rgba(255,255,255,.05) 20px);
-      border-top: 5px solid rgba(255,255,255,.05);
-      border-bottom: 5px solid rgba(255,255,255,.05);
-      display: flex; align-items: center; overflow: hidden;
-    }
-    .filmstrip-holes { display: flex; width: 100%; }
-    .filmstrip-hole {
-      width: 18px; height: 13px;
-      background: var(--navy); border-radius: 3px;
-      margin: 0 13px; flex-shrink: 0;
-    }
-
-    /* ── Hero ─────────────────────────────────────────────────────── */
-    #hero { background: var(--navy); color: #fff; padding: 0; overflow: hidden; }
-    .hero-body { padding: 3rem 2rem 4rem; max-width: 1100px; margin: 0 auto; }
+    .hero-body { position: relative; z-index: 1; max-width: 1020px; margin: 0 auto; padding: 4rem 2.25rem 3.25rem; }
 
     .venue-badge {
-      display: inline-flex; align-items: center; gap: .5rem;
-      background: rgba(13,148,136,.2); border: 1px solid rgba(13,148,136,.35);
-      color: var(--teal-light); font-size: .78rem; font-weight: 600;
-      letter-spacing: .06em; padding: .3rem .9rem; border-radius: 999px;
-      margin-bottom: 1.5rem;
+      display: inline-flex; align-items: center; gap: .6rem;
+      background: var(--gold-pale);
+      border: 1px solid rgba(230,185,128,.32);
+      color: var(--gold);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .715rem; font-weight: 500; letter-spacing: .11em; text-transform: uppercase;
+      padding: .42rem 1rem .42rem .8rem; border-radius: 999px; margin-bottom: 1.9rem;
     }
-    .venue-badge svg { width: 13px; height: 13px; }
+    .venue-badge svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .venue-badge .sep { color: rgba(230,185,128,.42); }
 
     h1.paper-title {
-      font-size: clamp(2rem, 4.5vw, 3.1rem); font-weight: 900;
-      color: #f1f5f9; max-width: 800px; margin-bottom: 1.75rem; line-height: 1.18;
+      font-size: clamp(2.1rem, 5vw, 3.45rem); font-weight: 900;
+      letter-spacing: -.025em; max-width: 940px; margin-bottom: 1.5rem; line-height: 1.13;
     }
-    h1.paper-title .highlight { color: var(--teal-light); }
+    h1.paper-title em { font-style: italic; color: var(--teal-l); font-weight: 700; }
 
-    .authors {
-      display: flex; flex-wrap: wrap; gap: .5rem 1.25rem;
-      margin-bottom: 1rem; font-size: .95rem;
-    }
-    .authors a { color: #cbd5e1; font-weight: 500; transition: color .2s; }
-    .authors a:hover { color: var(--teal-light); text-decoration: none; }
-    .authors sup { font-size: .65em; color: var(--teal-light); margin-left: 1px; }
-
-    .affiliation {
-      display: flex; align-items: center; gap: .55rem;
-      color: #94a3b8; font-size: .875rem; margin-bottom: 2.25rem;
-    }
-    .affiliation-logo {
-      width: 22px; height: 22px;
-      background: linear-gradient(135deg, var(--teal) 0%, #0891b2 100%);
-      border-radius: 5px; display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
+    .hero-tagline {
+      font-size: 1.1rem; color: var(--muted); max-width: 680px;
+      margin-bottom: 2.25rem; line-height: 1.65;
     }
 
-    .btn-row { display: flex; flex-wrap: nowrap; gap: .75rem; margin-bottom: 2rem; max-width: 100%; overflow-x: auto; }
+    .authors { margin-bottom: 2rem; }
+    .authors .names { font-size: 1.02rem; font-weight: 500; color: #d8e2ee; margin-bottom: .3rem; }
+    .authors .affil { font-size: .92rem; color: var(--faint); }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: .8rem; margin-bottom: 3rem; }
     .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
-      padding: .55rem 1.4rem; border-radius: 999px; font-size: .875rem;
-      font-weight: 600; cursor: pointer; transition: transform .18s, box-shadow .18s, background .18s;
-      text-decoration: none; white-space: nowrap;
+      display: inline-flex; align-items: center; gap: .55rem;
+      font-size: .885rem; font-weight: 500; padding: .66rem 1.35rem;
+      border-radius: 999px; border: 1px solid var(--line-2);
+      color: var(--text); background: rgba(255,255,255,.035);
+      transition: all .22s ease;
     }
-    .btn:hover { transform: translateY(-2px); text-decoration: none; }
-    .btn-primary { background: var(--teal); color: #fff; box-shadow: 0 4px 16px rgba(13,148,136,.35); }
-    .btn-primary:hover { background: var(--teal-light); box-shadow: 0 6px 24px rgba(13,148,136,.45); }
-    .btn-outline {
-      background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.2); color: #e2e8f0;
+    .btn svg { width: 15px; height: 15px; }
+    .btn:hover { border-color: var(--teal); color: var(--strong); background: var(--teal-pale); transform: translateY(-1px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--teal-d), var(--teal));
+      border-color: transparent; color: #04211d; font-weight: 600;
     }
-    .btn-outline:hover { background: rgba(255,255,255,.13); box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+    .btn-primary:hover { background: linear-gradient(135deg, var(--teal), var(--teal-l)); color: #04211d; }
 
-    /* Stat row (narrative-inspired) */
+    /* Hero stats */
     .stat-row {
-      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+      background: var(--line); border: 1px solid var(--line);
+      border-radius: var(--r); overflow: hidden;
     }
-    .stat-card {
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.09);
-      border-radius: var(--radius); padding: 1rem 1.1rem;
-    }
+    .stat-card { background: var(--panel); padding: 1.4rem 1.35rem; }
     .stat-num {
-      font-family: 'Playfair Display', serif;
-      font-size: 2rem; font-weight: 700; line-height: 1; color: #f1f5f9;
+      font-family: 'Playfair Display', serif; font-size: 2.1rem; font-weight: 700;
+      color: var(--strong); line-height: 1; margin-bottom: .5rem; letter-spacing: -.02em;
     }
-    .stat-num .accent { color: var(--teal-light); }
-    .stat-label { font-size: .78rem; color: #94a3b8; margin-top: .4rem; line-height: 1.4; }
+    .stat-num .accent { color: var(--teal-l); }
+    .stat-num .unit { font-size: .95rem; font-family: 'Inter', sans-serif; font-weight: 500; color: var(--muted); margin-left: .12rem; }
+    .stat-label { font-size: .775rem; color: var(--faint); line-height: 1.45; }
 
-    /* ── Abstract ─────────────────────────────────────────────────── */
-    #abstract { background: var(--bg); }
-    .abstract-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 1.75rem 2.25rem;
-      box-shadow: var(--shadow); border-left: 4px solid var(--teal);
+    /* ══ Prose ═══════════════════════════════════════════════════════ */
+    p.lead { font-size: 1.09rem; color: #cfdae7; margin-bottom: 1.15rem; }
+    p + p { margin-top: 1.05rem; }
+    .prose p { margin-bottom: 1.05rem; }
+    .prose p:last-child { margin-bottom: 0; }
+
+    /* ══ Panels & cards ══════════════════════════════════════════════ */
+    .panel {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--r); padding: 1.75rem;
     }
-    .abstract-card p {
-      text-align: justify; font-size: 1.05rem; line-height: 1.65; color: var(--body);
+    .panel-quiet { background: var(--panel-2); }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.1rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+    .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; }
+
+    .card {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--r); padding: 1.5rem 1.45rem;
+      transition: border-color .25s, transform .25s, background .25s;
+    }
+    .card:hover { border-color: var(--line-2); transform: translateY(-2px); background: var(--panel-2); }
+    .card h4 { font-size: 1.06rem; margin-bottom: .55rem; }
+    .card p { font-size: .895rem; color: var(--muted); line-height: 1.6; }
+
+    .card-num {
+      font-family: 'JetBrains Mono', monospace; font-size: .7rem; font-weight: 600;
+      color: var(--teal-l); letter-spacing: .1em; margin-bottom: .8rem; display: block;
     }
 
-    /* Pull quote */
-    .pull-quote {
-      border-left: 3px solid var(--teal);
-      padding: .9rem 1.4rem; margin: 1.5rem 0;
-      background: rgba(13,148,136,.07); border-radius: 0 var(--radius) var(--radius) 0;
-    }
-    .pull-quote p {
-      font-family: 'Playfair Display', serif; font-style: italic;
-      font-size: 1.2rem; color: #e2e8f0; line-height: 1.55; margin-bottom: .4rem;
-    }
-    .pull-quote cite { font-size: .8rem; color: var(--muted); font-style: normal; }
-
-    /* ── Framework ────────────────────────────────────────────────── */
-    #framework { background: var(--card); }
-
-    .pipeline-img-wrap {
-      border-radius: var(--radius); overflow: hidden;
-      border: 1px solid var(--border); margin-bottom: 1.5rem;
-      background: var(--navy);
-    }
-    .pipeline-img-wrap img { width: 100%; border-radius: var(--radius); }
-
-    .cards-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1rem; margin-bottom: 1.5rem;
-    }
-    .component-card {
-      background: var(--navy); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 1.1rem 1.2rem;
-      transition: transform .22s, box-shadow .22s, border-color .22s;
-      position: relative; overflow: hidden;
-    }
-    .component-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      background: var(--teal); transform: scaleX(0); transform-origin: left; transition: transform .3s;
-    }
-    .component-card:hover::before { transform: scaleX(1); }
-    .component-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--teal); }
-
-    .card-icon-box {
-      width: 28px; height: 28px; border-radius: 7px;
+    .card-icon {
+      width: 38px; height: 38px; border-radius: 10px; margin-bottom: 1rem;
       display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700; margin-bottom: .65rem;
+      background: var(--teal-pale); border: 1px solid rgba(20,184,166,.22);
+      color: var(--teal-l);
     }
-    .card-icon-box.teal { background: rgba(13,148,136,.2); color: var(--teal-light); }
-    .card-icon-box.navy { background: rgba(99,102,241,.2); color: #a5b4fc; }
-    .card-icon-box.amber { background: rgba(245,158,11,.15); color: #fcd34d; }
+    .card-icon svg { width: 18px; height: 18px; }
 
-    .card-title {
-      font-family: 'Playfair Display', serif; font-size: 1rem;
-      font-weight: 700; color: #f1f5f9; margin-bottom: .45rem;
+    /* ══ Figure plates ═══════════════════════════════════════════════ */
+    .figure {
+      background: linear-gradient(180deg, #fbfcfd, #f1f4f8);
+      border: 1px solid var(--line-2); border-radius: var(--r-lg);
+      padding: 1.5rem; box-shadow: var(--shadow-lg); margin-bottom: 1rem;
     }
-    .card-body { font-size: .85rem; color: var(--muted); line-height: 1.55; }
-
-    .approach-img-wrap {
-      border-radius: var(--radius); overflow: hidden;
-      border: 1px solid var(--border);
+    .figure img { border-radius: 6px; margin: 0 auto; }
+    .figure-dark {
+      border: 1px solid var(--line-2); border-radius: var(--r-lg);
+      overflow: hidden; box-shadow: var(--shadow-lg); margin-bottom: 2.25rem;
     }
-    .approach-img-wrap img { width: 100%; }
+    .figure-dark img { width: 100%; }
 
-    /* ── NQD Section ──────────────────────────────────────────────── */
-    #nqd { background: var(--bg); }
-
-    .nqd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: start; }
-
-    .nqd-intro { font-size: .95rem; color: var(--body); line-height: 1.65; margin-bottom: .65rem; }
-    .nqd-intro strong { color: #f1f5f9; font-weight: 600; }
-
-    .nqd-bars {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: .65rem 1.25rem;
+    .figcaption {
+      font-size: .845rem; color: var(--faint); text-align: center;
+      max-width: 680px; margin: 0 auto 0; line-height: 1.6;
     }
-    .nqd-item { display: flex; align-items: center; gap: .6rem; }
-    .nqd-label { font-size: .8rem; color: var(--body); white-space: nowrap; min-width: 0; flex-shrink: 0; }
-    .nqd-bar-bg {
-      flex: 1; height: 6px; background: var(--border);
-      border-radius: 99px; overflow: hidden; min-width: 0;
-    }
-    .nqd-bar-fill { height: 100%; border-radius: 99px; background: var(--teal); }
-    .nqd-score { font-size: .78rem; font-weight: 600; color: var(--teal-light); min-width: 26px; text-align: right; }
-    .nqd-footnote { font-size: .72rem; color: var(--muted); margin-top: .6rem; }
+    .figcaption b { color: var(--muted); font-weight: 600; }
 
-    /* Validation cards */
-    .val-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
-    .val-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 1rem 1.1rem;
+    /* ══ Pillars (3-step) ════════════════════════════════════════════ */
+    .pillar {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--r); padding: 1.6rem 1.5rem; position: relative; overflow: hidden;
     }
-    .val-badge {
-      display: inline-block; font-size: .7rem; font-weight: 600;
-      padding: .18rem .65rem; border-radius: 999px; margin-bottom: .55rem; letter-spacing: .04em;
+    .pillar::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--teal), transparent);
     }
-    .val-badge.gold { background: rgba(245,158,11,.15); color: #fcd34d; }
-    .val-badge.red  { background: rgba(239,68,68,.12); color: #fca5a5; }
-    .val-title { font-size: .9rem; font-weight: 600; color: #f1f5f9; margin-bottom: .3rem; }
-    .val-desc { font-size: .8rem; color: var(--muted); line-height: 1.45; }
-    .val-score { font-size: 1.7rem; font-weight: 700; margin-top: .65rem; font-family: 'Playfair Display', serif; }
-    .val-score.high { color: var(--teal-light); }
-    .val-score.low  { color: #f87171; }
+    .pillar .step {
+      font-family: 'JetBrains Mono', monospace; font-size: .68rem; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--faint); margin-bottom: .7rem; display: block;
+    }
+    .pillar h4 { font-size: 1.12rem; margin-bottom: .6rem; }
+    .pillar p { font-size: .88rem; color: var(--muted); line-height: 1.62; margin-bottom: .9rem; }
+    .pillar .meta {
+      font-family: 'JetBrains Mono', monospace; font-size: .72rem; color: var(--teal-l);
+      padding-top: .85rem; border-top: 1px solid var(--line);
+    }
 
-    /* ── Results ──────────────────────────────────────────────────── */
-    #results { background: var(--card); }
-
-    .callout-banner {
-      background: linear-gradient(135deg, var(--navy) 0%, #1a2744 100%);
-      color: #fff; border-radius: var(--radius); padding: 1.25rem 2rem;
-      display: flex; align-items: center; gap: 1rem;
-      margin-bottom: 1.5rem; box-shadow: var(--shadow-lg);
-      border: 1px solid rgba(13,148,136,.25);
+    /* ══ Tables ══════════════════════════════════════════════════════ */
+    .table-wrap {
+      overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r);
+      background: var(--panel); -webkit-overflow-scrolling: touch;
     }
-    .callout-icon { font-size: 2rem; flex-shrink: 0; }
-    .callout-text {
-      font-family: 'Playfair Display', serif; font-size: 1.15rem;
-      font-weight: 700; line-height: 1.4; color: #f1f5f9;
-    }
-    .callout-text em { color: var(--teal-light); font-style: normal; }
-
-    .results-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: stretch; }
-    .results-table-wrap, .chart-wrap { display: flex; flex-direction: column; }
-    .chart-container { position: relative; flex: 1; min-height: 250px; height: 100%; width: 100%; }
-
-    .results-table-wrap {
-      background: var(--navy); border: 1px solid var(--border);
-      border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
-    }
-    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .845rem; min-width: 660px; }
     thead th {
-      background: rgba(0,0,0,.35); color: #e2e8f0; font-weight: 600;
-      padding: .9rem 1.25rem; text-align: left;
-      font-family: 'Inter', sans-serif; font-size: .75rem;
-      letter-spacing: .06em; text-transform: uppercase;
+      font-family: 'Inter', sans-serif; font-size: .715rem; font-weight: 600;
+      letter-spacing: .07em; text-transform: uppercase; color: var(--muted);
+      text-align: right; padding: .95rem .85rem; border-bottom: 1px solid var(--line-2);
+      background: var(--panel-2); white-space: nowrap; vertical-align: bottom;
     }
-    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: rgba(13,148,136,.07); }
-    td { padding: .85rem 1.25rem; color: var(--body); }
-    .ours-row td { background: rgba(13,148,136,.1); font-weight: 600; }
-    .ours-row td:first-child { color: var(--teal-light); }
+    thead th:first-child { text-align: left; }
+    tbody td {
+      padding: .68rem .85rem; text-align: right; border-bottom: 1px solid rgba(148,163,184,.07);
+      font-family: 'JetBrains Mono', monospace; font-size: .81rem; color: var(--text);
+      white-space: nowrap;
+    }
+    tbody td:first-child {
+      text-align: left; font-family: 'Inter', sans-serif; font-size: .875rem; color: #d3dde9;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: rgba(255,255,255,.022); }
+    tr.highlight td { background: rgba(20,184,166,.075) !important; color: var(--strong); }
+    tr.highlight td:first-child { font-weight: 700; color: var(--teal-l); }
+    tr.highlight { border-top: 1px solid rgba(20,184,166,.3); }
+    td .best { color: var(--strong); font-weight: 600; position: relative; }
+    td .second { text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
+    .sd { color: var(--faint); font-size: .93em; }
 
-    .rank-badge {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 26px; height: 26px; border-radius: 50%; font-size: .8rem; font-weight: 700;
+    .table-note {
+      font-size: .8rem; color: var(--faint); margin-top: .85rem; line-height: 1.6; max-width: var(--readw);
     }
-    .rank-1 { background: var(--teal); color: #fff; }
-    .rank-2 { background: #1e3a5f; color: #93c5fd; }
-    .rank-3 { background: #451a03; color: #fcd34d; }
-    .rank-4 { background: #374151; color: var(--muted); }
+    .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--teal); margin-right: .3rem; vertical-align: middle; }
 
-    .chart-wrap {
-      background: var(--navy); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 1.75rem; box-shadow: var(--shadow);
-    }
-    .chart-title {
-      font-weight: 600; font-size: .95rem; color: #f1f5f9;
-      margin-bottom: 1.25rem; font-family: 'Playfair Display', serif;
-    }
-
-    /* ── Examples ─────────────────────────────────────────────────── */
-    #examples { background: var(--bg); }
-    .examples-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-    .example-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 2rem; transition: box-shadow .22s;
-    }
-    .example-card:hover { box-shadow: var(--shadow-lg); }
-    .example-genre {
-      display: inline-flex; align-items: center; gap: .4rem;
-      font-size: .72rem; font-weight: 700; letter-spacing: .09em;
-      text-transform: uppercase; color: var(--teal-light);
-      background: var(--teal-pale); padding: .22rem .7rem;
-      border-radius: 999px; margin-bottom: 1.25rem;
-    }
-    .example-label {
-      font-size: .72rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .09em; color: var(--muted); margin-bottom: .4rem;
-    }
-    .example-premise {
-      font-weight: 600; font-size: .95rem; color: #f1f5f9;
-      margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border);
-    }
-    .example-plot { font-style: italic; font-size: .93rem; color: var(--body); line-height: 1.8; }
-    .example-plot::before {
-      content: '\201C'; font-size: 2rem; font-family: 'Playfair Display', serif;
-      color: var(--teal); line-height: 0; vertical-align: -.5rem; margin-right: .2rem;
+    /* Group heading row inside tables */
+    tr.group td {
+      background: var(--panel-2); font-family: 'JetBrains Mono', monospace;
+      font-size: .68rem; letter-spacing: .13em; text-transform: uppercase;
+      color: var(--faint); padding: .5rem .85rem; text-align: left;
     }
 
-    /* ── Citation ─────────────────────────────────────────────────── */
-    #citation { background: var(--card); }
-    .bibtex-wrap { position: relative; background: var(--navy); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+    /* ══ Charts ══════════════════════════════════════════════════════ */
+    .chart-box { position: relative; width: 100%; }
+    .chart-box canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+    .h-380 { height: 380px; }
+    .h-420 { height: 420px; }
+    .h-340 { height: 340px; }
+    .h-460 { height: 460px; }
+
+    /* ══ Win-rate bars ═══════════════════════════════════════════════ */
+    .wr-list { display: flex; flex-direction: column; gap: .1rem; }
+    .wr-row {
+      display: grid; grid-template-columns: 190px 1fr 92px; align-items: center;
+      gap: 1rem; padding: .6rem .2rem; border-bottom: 1px solid rgba(148,163,184,.07);
+    }
+    .wr-row:last-child { border-bottom: none; }
+    .wr-name { font-size: .87rem; color: #d3dde9; }
+    .wr-track { height: 8px; background: var(--panel-3); border-radius: 999px; overflow: hidden; position: relative; }
+    .wr-track::after {
+      content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px;
+      background: var(--line-2);
+    }
+    .wr-fill {
+      height: 100%; border-radius: 999px; width: 0;
+      background: linear-gradient(90deg, var(--teal-d), var(--teal-l));
+      transition: width 1.1s cubic-bezier(.2,.7,.3,1);
+    }
+    .wr-fill.tie { background: linear-gradient(90deg, #475569, #94a3b8); }
+    .wr-val {
+      font-family: 'JetBrains Mono', monospace; font-size: .84rem; color: var(--strong);
+      text-align: right; font-weight: 500;
+    }
+    .wr-val small { display: block; font-size: .66rem; color: var(--faint); font-weight: 400; }
+
+    /* ══ Equations ═══════════════════════════════════════════════════ */
+    .eq {
+      background: var(--panel-2); border: 1px solid var(--line);
+      border-left: 2px solid var(--teal); border-radius: var(--r-sm);
+      padding: 1.1rem 1.3rem; margin: 1.1rem 0;
+      font-family: 'JetBrains Mono', monospace; font-size: .87rem;
+      color: #dbe4ef; overflow-x: auto; line-height: 1.75;
+    }
+    .eq .cm { color: var(--faint); }
+    .eq-note { font-size: .82rem; color: var(--faint); margin-top: .5rem; }
+
+    /* ══ Pipeline funnel ═════════════════════════════════════════════ */
+    .funnel { display: flex; flex-direction: column; gap: .55rem; }
+    .funnel-step {
+      display: flex; align-items: center; gap: 1rem;
+      background: var(--panel-2); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: .85rem 1.1rem;
+    }
+    .funnel-step .n {
+      font-family: 'JetBrains Mono', monospace; font-size: .95rem; font-weight: 600;
+      color: var(--teal-l); min-width: 64px;
+    }
+    .funnel-step .t { font-size: .875rem; color: var(--muted); }
+    .funnel-step.final { border-color: rgba(20,184,166,.35); background: var(--teal-pale); }
+    .funnel-step.final .t { color: var(--text); }
+    .funnel-arrow { text-align: center; color: var(--faint); font-size: .8rem; line-height: 1; }
+
+    /* ══ NQD dimension cards ═════════════════════════════════════════ */
+    .nqd-card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+      padding: 1.35rem 1.25rem; transition: border-color .25s, transform .25s;
+    }
+    .nqd-card:hover { border-color: rgba(20,184,166,.32); transform: translateY(-2px); }
+    .nqd-card .idx {
+      font-family: 'JetBrains Mono', monospace; font-size: .68rem; color: var(--faint);
+      letter-spacing: .1em; margin-bottom: .75rem; display: block;
+    }
+    .nqd-card h4 { font-size: .98rem; margin-bottom: .5rem; line-height: 1.3; }
+    .nqd-card p { font-size: .825rem; color: var(--muted); line-height: 1.55; }
+
+    /* ══ Jury roster ═════════════════════════════════════════════════ */
+    .roster { display: grid; grid-template-columns: repeat(5, 1fr); gap: .75rem; }
+    .juror {
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+      padding: .95rem .85rem; text-align: center;
+    }
+    .juror .jn { font-size: .82rem; color: var(--strong); font-weight: 500; margin-bottom: .3rem; line-height: 1.35; }
+    .juror .jf { font-size: .7rem; color: var(--faint); }
+    .juror .jp {
+      font-family: 'JetBrains Mono', monospace; font-size: .63rem; color: var(--teal-l);
+      margin-top: .5rem; padding-top: .5rem; border-top: 1px solid var(--line);
+    }
+    .judge-strip {
+      margin-top: .75rem; background: var(--gold-pale); border: 1px solid rgba(230,185,128,.25);
+      border-radius: var(--r-sm); padding: .8rem 1.1rem;
+      display: flex; align-items: center; justify-content: center; gap: .6rem;
+      font-size: .84rem; color: var(--text); text-align: center; flex-wrap: wrap;
+    }
+    .judge-strip b { color: var(--gold); font-weight: 600; }
+
+    /* ══ Metric strip ════════════════════════════════════════════════ */
+    .metrics {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+      background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden;
+    }
+    .metric { background: var(--panel); padding: 1.25rem 1.1rem; text-align: center; }
+    .metric .mv {
+      font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 600;
+      color: var(--teal-l); line-height: 1; margin-bottom: .5rem;
+    }
+    .metric .mv.gold { color: var(--gold); }
+    .metric .ml { font-size: .75rem; color: var(--faint); line-height: 1.45; }
+
+    /* ══ Validation split ════════════════════════════════════════════ */
+    .split {
+      display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1.25rem;
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 1.5rem;
+    }
+    .split .side { text-align: center; }
+    .split .sv {
+      font-family: 'Playfair Display', serif; font-size: 2.3rem; font-weight: 700; line-height: 1;
+      margin-bottom: .45rem;
+    }
+    .split .acclaimed .sv { color: var(--teal-l); }
+    .split .panned .sv { color: #94a3b8; }
+    .split .sl { font-size: .78rem; color: var(--faint); line-height: 1.4; }
+    .split .delta {
+      font-family: 'JetBrains Mono', monospace; font-size: .95rem; font-weight: 600;
+      color: var(--gold); background: var(--gold-pale); border: 1px solid rgba(230,185,128,.28);
+      border-radius: 999px; padding: .4rem .9rem; white-space: nowrap;
+    }
+
+    /* ══ Callout ═════════════════════════════════════════════════════ */
+    .callout {
+      background: var(--panel-2); border: 1px solid var(--line);
+      border-left: 2px solid var(--teal); border-radius: var(--r-sm);
+      padding: 1.15rem 1.4rem; font-size: .92rem; color: var(--text); line-height: 1.65;
+    }
+    .callout.warn { border-left-color: var(--gold); }
+    .callout .ct {
+      font-family: 'JetBrains Mono', monospace; font-size: .68rem; letter-spacing: .13em;
+      text-transform: uppercase; color: var(--teal-l); display: block; margin-bottom: .5rem;
+    }
+    .callout.warn .ct { color: var(--gold); }
+
+    /* ══ Example plot ════════════════════════════════════════════════ */
+    .premise-box {
+      background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r);
+      padding: 1.35rem 1.5rem; margin-bottom: 1.1rem;
+    }
+    .premise-box .pl {
+      font-family: 'JetBrains Mono', monospace; font-size: .68rem; letter-spacing: .13em;
+      text-transform: uppercase; color: var(--teal-l); margin-bottom: .6rem;
+    }
+    .premise-box p { font-size: .95rem; color: #d3dde9; font-style: italic; }
+
+    .plot-box {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+      padding: 1.75rem 1.9rem; position: relative;
+    }
+    .plot-box .pl {
+      font-family: 'JetBrains Mono', monospace; font-size: .68rem; letter-spacing: .13em;
+      text-transform: uppercase; color: var(--faint); margin-bottom: 1rem;
+      padding-bottom: .8rem; border-bottom: 1px solid var(--line);
+    }
+    .plot-box p { font-size: .93rem; line-height: 1.78; color: var(--text); margin-bottom: .95rem; }
+    .plot-box p:last-child { margin-bottom: 0; }
+    .plot-box p:first-of-type::first-letter {
+      font-family: 'Playfair Display', serif; font-size: 3rem; float: left;
+      line-height: .85; padding: .1rem .55rem .1rem 0; color: var(--teal-l);
+    }
+
+    /* ══ Limitations list ════════════════════════════════════════════ */
+    .lim-list { list-style: none; display: flex; flex-direction: column; gap: .9rem; }
+    .lim-list li {
+      display: flex; gap: .9rem; font-size: .91rem; color: var(--muted); line-height: 1.65;
+    }
+    .lim-list li::before {
+      content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--gold);
+      flex-shrink: 0; margin-top: .62rem;
+    }
+
+    /* ══ BibTeX ══════════════════════════════════════════════════════ */
+    .bibtex-wrap { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--panel); }
     .bibtex-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: .75rem 1.25rem; background: rgba(255,255,255,.04);
-      border-bottom: 1px solid var(--border);
+      padding: .7rem 1.1rem; background: var(--panel-2); border-bottom: 1px solid var(--line);
     }
-    .bibtex-lang { font-size: .72rem; font-weight: 600; color: var(--teal-light); letter-spacing: .07em; text-transform: uppercase; }
+    .bibtex-lang {
+      font-family: 'JetBrains Mono', monospace; font-size: .7rem; letter-spacing: .13em;
+      text-transform: uppercase; color: var(--faint);
+    }
     .copy-btn {
       display: inline-flex; align-items: center; gap: .4rem;
-      background: rgba(13,148,136,.18); border: 1px solid rgba(13,148,136,.35);
-      color: var(--teal-light); font-size: .78rem; font-weight: 600;
-      padding: .3rem .8rem; border-radius: 6px; cursor: pointer;
-      transition: background .2s, color .2s; font-family: 'Inter', sans-serif;
+      background: rgba(255,255,255,.045); border: 1px solid var(--line-2); color: var(--muted);
+      font-family: 'Inter', sans-serif; font-size: .76rem; font-weight: 500;
+      padding: .34rem .8rem; border-radius: 6px; cursor: pointer; transition: all .2s;
     }
-    .copy-btn:hover { background: var(--teal); color: #fff; }
-    .copy-btn.copied { background: #059669; border-color: #059669; color: #fff; }
+    .copy-btn:hover { color: var(--teal-l); border-color: var(--teal); background: var(--teal-pale); }
+    .copy-btn.copied { color: var(--teal-l); border-color: var(--teal); background: var(--teal-pale); }
     pre.bibtex {
-      font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: .84rem;
-      line-height: 1.75; color: #94a3b8; padding: 1.5rem 1.5rem 2rem;
-      overflow-x: auto; white-space: pre;
+      padding: 1.35rem; font-family: 'JetBrains Mono', monospace; font-size: .8rem;
+      line-height: 1.75; color: var(--text); overflow-x: auto;
     }
-    pre.bibtex .key   { color: #7dd3fc; }
-    pre.bibtex .val   { color: #a5f3fc; }
-    pre.bibtex .field { color: #c4b5fd; }
-    pre.bibtex .brace { color: #e2e8f0; }
+    .bibtex .key { color: var(--teal-l); }
+    .bibtex .field { color: #93c5fd; }
+    .bibtex .val { color: #e2e8f0; }
+    .bibtex .brace { color: var(--faint); }
 
-    /* ── Footer ───────────────────────────────────────────────────── */
-    footer { background: var(--navy); color: #64748b; padding: 2.5rem 2rem; }
+    /* ══ Footer ══════════════════════════════════════════════════════ */
+    footer { border-top: 1px solid var(--line); background: var(--panel); }
     .footer-inner {
-      max-width: 1100px; margin: 0 auto;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 1rem;
+      max-width: 1020px; margin: 0 auto; padding: 2.25rem 2.25rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
     }
-    .footer-brand { font-family: 'Playfair Display', serif; font-size: .95rem; color: #94a3b8; }
-    .footer-links { display: flex; gap: 1.25rem; list-style: none; }
-    .footer-links a { color: #64748b; font-size: .875rem; font-weight: 500; transition: color .2s; }
-    .footer-links a:hover { color: var(--teal-light); text-decoration: none; }
+    .footer-brand { font-size: .85rem; color: var(--faint); }
+    .footer-venue {
+      font-family: 'JetBrains Mono', monospace; font-size: .73rem; color: var(--gold);
+      letter-spacing: .08em; text-transform: uppercase;
+    }
 
-    /* ── Reveal animation ─────────────────────────────────────────── */
-    .reveal { opacity: 0; transform: translateY(22px); transition: opacity .6s ease, transform .6s ease; }
+    /* ══ Reveal ══════════════════════════════════════════════════════ */
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity .65s ease, transform .65s ease; }
     .reveal.visible { opacity: 1; transform: none; }
 
-    /* ── Responsive ───────────────────────────────────────────────── */
-    @media (max-width: 768px) {
-      body { background: var(--bg); }
-      .page-wrapper { border: none; box-shadow: none; max-width: 100%; }
-      
-      .nav-links { display: none; }
-      .nqd-grid { grid-template-columns: 1fr; }
-      .results-cols { grid-template-columns: 1fr; }
-      .examples-grid { grid-template-columns: 1fr; }
-      .abstract-card { padding: 1.5rem; }
-      .callout-banner { flex-direction: column; text-align: center; }
-      .footer-inner { flex-direction: column; align-items: flex-start; }
-      .hero-body { padding: 3rem 1.25rem 3.5rem; }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+      html { scroll-behavior: auto; }
+      .wr-fill { transition: none; }
     }
 
-    @media (max-width: 480px) {
-      .stat-row { grid-template-columns: 1fr; }
-      .cards-grid { grid-template-columns: 1fr; }
-      .val-grid { grid-template-columns: 1fr; }
-      .nqd-bars { grid-template-columns: 1fr; }
-      .stat-num { font-size: 1.6rem; }
-      .btn { padding: .55rem 0.5rem; font-size: 0.75rem; }
+    /* ══ Utilities ═══════════════════════════════════════════════════ */
+    .mt-1 { margin-top: .75rem; }  .mt-2 { margin-top: 1.35rem; }
+    .mt-3 { margin-top: 2rem; }    .mt-4 { margin-top: 2.75rem; }
+    .mb-2 { margin-bottom: 1.35rem; } .mb-3 { margin-bottom: 2rem; }
+    h3.sub {
+      font-size: 1.28rem; margin-bottom: .85rem; letter-spacing: -.01em;
+      display: flex; align-items: baseline; gap: .7rem;
+    }
+    h3.sub .tag {
+      font-family: 'JetBrains Mono', monospace; font-size: .68rem; font-weight: 500;
+      color: var(--teal-l); letter-spacing: .1em; text-transform: uppercase;
+    }
+
+    /* ══ Responsive ══════════════════════════════════════════════════ */
+    @media (max-width: 900px) {
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+      .grid-3, .grid-5, .roster, .metrics { grid-template-columns: repeat(2, 1fr); }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 640px) {
+      body { font-size: 15.5px; }
+      .container, .nav-inner { padding: 0 1.25rem; }
+      .hero-body { padding: 2.75rem 1.25rem 2.5rem; }
+      section { padding: 3rem 0; }
+      .grid-2, .grid-3, .grid-5, .roster, .stat-row, .metrics { grid-template-columns: 1fr; }
+      .split { grid-template-columns: 1fr; gap: 1rem; }
+      .wr-row { grid-template-columns: 120px 1fr 74px; gap: .7rem; }
+      .wr-name { font-size: .8rem; }
+      .plot-box { padding: 1.35rem 1.25rem; }
+      .figure { padding: .85rem; border-radius: var(--r); }
     }
   </style>
 </head>
 <body>
 
+<div id="progress"></div>
+
 <div class="page-wrapper">
-  <!-- ══ NAVBAR ══════════════════════════════════════════════════════ -->
+
+  <!-- ══ NAV ═══════════════════════════════════════════════════════ -->
   <nav>
     <div class="nav-inner">
       <span class="nav-brand">Plot<span class="dot">Twist</span></span>
       <ul class="nav-links">
         <li><a href="#abstract">Abstract</a></li>
         <li><a href="#framework">Framework</a></li>
-        <li><a href="#nqd">NQD</a></li>
+        <li><a href="#method">Method</a></li>
+        <li><a href="#evaluation">Evaluation</a></li>
         <li><a href="#results">Results</a></li>
-        <li><a href="#examples">Examples</a></li>
-        <li><a href="#citation">Citation</a></li>
+        <li><a href="#analysis">Analysis</a></li>
+        <li><a href="#citation">Cite</a></li>
       </ul>
     </div>
   </nav>
 
-  <!-- ══ HERO ════════════════════════════════════════════════════════ -->
+  <!-- ══ HERO ══════════════════════════════════════════════════════ -->
   <section id="hero">
-    <div class="filmstrip" aria-hidden="true"><div class="filmstrip-holes" id="filmstripTop"></div></div>
-
     <div class="hero-body">
+
       <div class="venue-badge">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-        Research Paper · arXiv:2603.16410 · 2026
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12z"/><path d="M8.2 13.9 7 22l5-3 5 3-1.2-8.1"/>
+        </svg>
+        Accepted <span class="sep">/</span> LUHME <span class="sep">/</span> EMNLP 2026
       </div>
 
-      <h1 class="paper-title">
-        <span class="highlight">PlotTwist:</span> A Creative Plot Generation
-        Framework with Small Language Models
-      </h1>
+      <h1 class="paper-title">PlotTwist: A Creative Plot Generation Framework with <em>Small Language Models</em></h1>
 
-      <div class="authors" style="display: block; margin-bottom: 2.25rem;">
-        <p style="font-size: 1.05rem; font-weight: 500; color: #cbd5e1; margin-bottom: 0.3rem;">Abhinav Thorat, Ravi Kolla, Jyotin Goel, Niranjan Pedanekar</p>
-        <p style="font-size: 0.95rem; color: #94a3b8; margin-bottom: 0.5rem;">Sony Research India</p>
+      <p class="hero-tagline">
+        A structured framework that lets a 3B active-parameter model turn a one-line premise
+        into a plot that holds its own against frontier systems many times its size.
+      </p>
+
+      <div class="authors">
+        <p class="names">Abhinav Thorat, Ravi Kolla, Jyotin Goel, Niranjan Pedanekar</p>
+        <p class="affil">Sony Research India</p>
       </div>
 
       <div class="btn-row">
-        <a href="https://arxiv.org/abs/2603.16410" class="btn btn-primary"><span>📄</span> Paper</a>
+        <a href="assets/plottwist-emnlp-2026.pdf" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          Paper (PDF)
+        </a>
+        <a href="https://arxiv.org/abs/2603.16410" class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+          arXiv
+        </a>
+        <a href="#citation" class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3-4 4-8 4-12a4 4 0 1 1 8 0c0 4-1 8-4 12"/><path d="M14 21c3-4 4-8 4-12"/></svg>
+          BibTeX
+        </a>
       </div>
 
-      <!-- Stat row -->
       <div class="stat-row reveal">
         <div class="stat-card">
-          <div class="stat-num"><span class="accent">200</span>×</div>
-          <div class="stat-label">Smaller than the frontier models it outperforms</div>
+          <div class="stat-num"><span class="accent">3</span><span class="unit">B</span></div>
+          <div class="stat-label">Active parameters per token in the plot generator</div>
         </div>
         <div class="stat-card">
-          <div class="stat-num"><span class="accent">5</span>B</div>
-          <div class="stat-label">Maximum active parameters in the SLM backbone</div>
+          <div class="stat-num"><span class="accent">8.36</span></div>
+          <div class="stat-label">Best overall jury score across all twelve systems</div>
         </div>
         <div class="stat-card">
-          <div class="stat-num"><span class="accent">5</span></div>
-          <div class="stat-label">Narrative Quality Dimensions evaluated per plot</div>
+          <div class="stat-num"><span class="accent">0.91</span></div>
+          <div class="stat-label">Per-premise win rate against GPT-4.1</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num"><span class="accent">160</span></div>
+          <div class="stat-label">Preference pairs needed to align the generator</div>
         </div>
       </div>
-    </div>
 
-    <div class="filmstrip" aria-hidden="true"><div class="filmstrip-holes" id="filmstripBottom"></div></div>
+    </div>
   </section>
 
-  <!-- ══ ABSTRACT ════════════════════════════════════════════════════ -->
+  <!-- ══ ABSTRACT ══════════════════════════════════════════════════ -->
   <section id="abstract">
     <div class="container">
-      <p class="section-label">Abstract</p>
-      <h2 class="section-title">Overview</h2>
-      <div class="section-divider"></div>
+      <div class="sec-head">
+        <p class="sec-label">Abstract</p>
+        <h2 class="sec-title">Structure instead of scale</h2>
+      </div>
 
-      <div class="abstract-card reveal">
+      <div class="prose reveal">
+        <p class="lead">
+          Creative plot generation asks a language model to turn a concise premise into a coherent
+          narrative while satisfying several constraints at once: global coherence, character
+          development, pacing, tone consistency, and emotional progression.
+        </p>
         <p>
-          Creative plot generation presents a fundamental challenge for language models:
-          transforming a concise premise into a coherent narrative that sustains global structure,
-          character development, and emotional resonance. We present <strong>PlotTwist</strong>,
-          a structured framework that enables Small Language Models (SLMs) with
-          <strong>5B active parameters</strong> to generate high-quality, premise-conditioned
-          plots competitive with frontier systems up to <strong>200 times larger</strong>.
-          Our approach decomposes generation into: (1) an <em>Aspect Rating Reward Model</em>
-          trained via Positive-Negative prompting across five Narrative Quality Dimensions (NQDs);
-          (2) a <em>Mixture-of-Experts plot generator</em> aligned via Direct Preference Optimization;
-          and (3) an <em>Agentic Evaluation module</em> that emulates human critical judgment.
-          Together, these components yield consistent improvements across all five NQDs,
-          demonstrating that careful decomposition and alignment can close and in many cases
-          surpass the quality gap between small and frontier language models on creative tasks.
+          Recent large language models are fluent on general-purpose tasks, but they need preference
+          alignment to do well on a domain-specific task like this one. Running that alignment at
+          frontier scale is computationally prohibitive, which limits both accessibility and practical
+          deployment.
+        </p>
+        <p>
+          PlotTwist addresses this by decomposing generation into three specialised components: an
+          <strong>Aspect Rating Reward Model</strong> trained with a novel positive and negative prompting
+          strategy, a <strong>Mixture-of-Experts plot generator</strong> aligned via Direct Preference
+          Optimization, and an <strong>Agentic Evaluation module</strong> whose cross-family jury emulates
+          human critical judgment for unbiased, independent, post-hoc assessment.
+        </p>
+        <p>
+          The result is a system with 3B active parameters that outperforms every baseline across
+          multiple Narrative Quality Dimensions, achieving higher win rates against all but the strongest
+          baseline, with which it remains competitive. It also reliably separates plots drawn from
+          critically acclaimed screenplays from those drawn from widely panned ones, which establishes
+          structured preference-based alignment as a resource-efficient route to high-quality creative
+          plot generation.
         </p>
       </div>
 
-      <div class="pull-quote reveal">
-        <p>"We replaced model capacity with structured workflow and the plots got better."</p>
-        <cite>Abhinav et al., 2026</cite>
+      <!-- Contributions -->
+      <div class="mt-4">
+        <h3 class="sub reveal"><span class="tag">Contributions</span></h3>
+        <div class="grid-3 reveal" style="margin-top:1.1rem">
+          <div class="card">
+            <span class="card-num">01</span>
+            <h4>Structured workflow with SLMs</h4>
+            <p>A modular framework of an aspect rating reward model, a DPO-trained MoE plot generator, and an independent agentic evaluation module.</p>
+          </div>
+          <div class="card">
+            <span class="card-num">02</span>
+            <h4>Positive and negative prompting</h4>
+            <p>A prompting strategy that mitigates positivity bias in LLM-based evaluation, giving reliable aspect-level supervision across five dimensions.</p>
+          </div>
+          <div class="card">
+            <span class="card-num">03</span>
+            <h4>Cross-family jury</h4>
+            <p>Five open-weight jurors from five disjoint families, with a pre-registered protocol covering structured deliberation, a held-out judge, and reliability analyses.</p>
+          </div>
+        </div>
+        <div class="grid-2 reveal" style="margin-top:1.1rem">
+          <div class="card">
+            <span class="card-num">04</span>
+            <h4>External validation of the evaluators</h4>
+            <p>Both the reward model and the agentic evaluator reliably separate acclaimed from critically panned plots across every dimension, so the scoring machinery is validated against outside signals rather than itself.</p>
+          </div>
+          <div class="card">
+            <span class="card-num">05</span>
+            <h4>Quality-adaptive generation</h4>
+            <p>PlotTwist scales its intervention to the source: it lightly refines already strong narratives and substantially restructures weak ones, rather than uniformly inflating scores.</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ══ FRAMEWORK ═══════════════════════════════════════════════════ -->
+  <!-- ══ FRAMEWORK ═════════════════════════════════════════════════ -->
   <section id="framework">
     <div class="container">
-      <p class="section-label">Method</p>
-      <h2 class="section-title">The PlotTwist Framework</h2>
-      <div class="section-divider"></div>
-
-      <!-- Pipeline flow image -->
-      <div class="pipeline-img-wrap reveal">
-        <img
-          src="assets/pipeline.png"
-          alt="PlotTwist pipeline: SLM 3B feeds into Aspect Reward Model, MoE DPO Generator, then Agentic Evaluator, producing a final plot"
-        />
+      <div class="sec-head">
+        <p class="sec-label">Framework</p>
+        <h2 class="sec-title">Three modules, one pipeline</h2>
+        <p class="sec-sub">
+          Rather than asking one monolithic model to learn every aspect of narrative quality through
+          token prediction, PlotTwist externalises narrative structure into explicit evaluative and
+          training signals.
+        </p>
       </div>
 
-      <!-- Three component cards -->
-      <div class="cards-grid">
-        <div class="component-card reveal">
-          <div class="card-icon-box teal">①</div>
-          <div class="card-title">Aspect Rating Reward Model</div>
-          <div class="card-body">
-            Scores plots across 5 NQDs via <strong style="color:#e2e8f0">Positive-Negative prompting</strong>,
-            eliminating positivity bias and producing calibrated quality signals.
-          </div>
-        </div>
-        <div class="component-card reveal" style="transition-delay:.1s">
-          <div class="card-icon-box navy">②</div>
-          <div class="card-title">MoE Plot Generator</div>
-          <div class="card-body">
-            Mixture-of-Experts backbone aligned via <strong style="color:#e2e8f0">DPO</strong>
-            on high-confidence pairs. Delivers <strong style="color:#e2e8f0">+0.78 NQD pts</strong> over base.
-          </div>
-        </div>
-        <div class="component-card reveal" style="transition-delay:.2s">
-          <div class="card-icon-box amber">③</div>
-          <div class="card-title">Agentic Evaluation Module</div>
-          <div class="card-body">
-            Independent judge validated against <strong style="color:#e2e8f0">101 acclaimed screenplays</strong>
-            vs. Razzie winners before grading generated plots.
-          </div>
-        </div>
-      </div>
+      <figure class="figure-dark reveal">
+        <img src="assets/approach.png" alt="Three panels: aspect-level evaluation of plots, mixture-of-experts generation, and automated quality assessment." loading="lazy" />
+      </figure>
 
-      <!-- Approach / components visual -->
-      <div class="approach-img-wrap reveal">
-        <img
-          src="assets/approach.png"
-          alt="Visual breakdown of PlotTwist's three components: Evaluation with NQD bars, Mixture-of-Experts Generation network, and Quality Assessment robot"
-        />
+      <figure class="figure reveal">
+        <img src="assets/paper-framework.png" alt="The PlotTwist framework: step 1 trains a reward model from multi-aspect ratings, step 2 trains the generator with DPO using reward model preferences, step 3 evaluates plots with an agentic aspect-focused jury." loading="lazy" />
+      </figure>
+      <p class="figcaption mb-3"><b>Figure 1.</b> The PlotTwist framework. Reward modelling, preference-aligned generation, and independent agentic evaluation are trained and run as separate stages.</p>
+
+      <div class="grid-3 reveal">
+        <div class="pillar">
+          <span class="step">Step 01</span>
+          <h4>Aspect Rating Reward Model</h4>
+          <p>Scores a plot on five narrative dimensions. Trained by supervised fine-tuning on synthetic aspect ratings produced by a five-model ensemble under positive and negative prompting.</p>
+          <div class="meta">Qwen-3-32B, 4-bit, CE + Huber</div>
+        </div>
+        <div class="pillar">
+          <span class="step">Step 02</span>
+          <h4>MoE Plot Generator</h4>
+          <p>A sparse mixture-of-experts backbone aligned with Direct Preference Optimization on preference pairs the reward model ranked and filtered under strict thresholds.</p>
+          <div class="meta">Qwen-3-30B-A3B, 3B active</div>
+        </div>
+        <div class="pillar">
+          <span class="step">Step 03</span>
+          <h4>Agentic Evaluation</h4>
+          <p>A jury of five open-weight models from families disjoint from the generator scores each plot independently, deliberates on contested cells, and is consolidated by a held-out judge.</p>
+          <div class="meta">5 jurors + 1 held-out judge</div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ══ NQD SECTION ═════════════════════════════════════════════════ -->
-  <section id="nqd">
+  <!-- ══ METHOD ════════════════════════════════════════════════════ -->
+  <section id="method">
     <div class="container">
-      <p class="section-label">Evaluation</p>
-      <h2 class="section-title">Five Dimensions of Narrative Quality</h2>
-      <div class="section-divider"></div>
+      <div class="sec-head">
+        <p class="sec-label">Methodology</p>
+        <h2 class="sec-title">How each component works</h2>
+      </div>
 
-      <div class="nqd-grid">
-        <div>
-          <p class="nqd-intro">
-            Rather than a single "quality" score, PlotTwist evaluates every plot across five
-            <strong>Narrative Quality Dimensions (NQDs)</strong>, each targeting a distinct
-            failure mode that makes stories feel broken. Scores are calibrated via the
-            Aspect Rating Reward Model, trained to separate genuine craft from surface-level fluency.
+      <!-- 4.1 Reward model -->
+      <h3 class="sub reveal"><span class="tag">4.1</span> Aspect Rating Reward Model</h3>
+      <div class="prose reveal mb-2">
+        <p>
+          No dataset provides fine-grained plot ratings across the dimensions we care about, so we build
+          one. We sample 5,000 movies from MovieLens across a broad range of IMDb ratings, scrape each
+          plot from Wikipedia, and keep only plots of at most 4,000 words. IMDb ratings never enter
+          training; they are used purely for curation and stratification.
+        </p>
+        <p>
+          Ratings are then generated synthetically by an ensemble of five models: Qwen-2.5-7B,
+          Llama-3.3-70B, Llama-3.1-8B, DeepSeek-14B, and Gemma-27B. Model diversity keeps any single
+          family's bias out of the labels.
+        </p>
+      </div>
+
+      <div class="callout reveal mb-2">
+        <span class="ct">The key idea: positive and negative prompting</span>
+        Each model is asked twice about the same aspect. Once to rate only what the plot does
+        <strong>well</strong> on that aspect, and once to rate only what it does <strong>badly</strong>.
+        Scoring the two poles separately counteracts the positivity bias that LLM judges show when asked
+        for a single verdict, and it correlates more strongly with external quality indicators.
+      </div>
+
+      <div class="eq reveal">
+        r<sub>a</sub>(p) = &Sigma;<sub>m</sub> ( r<sup>+</sup><sub>a,m</sub>(p) &minus; r<sup>&minus;</sup><sub>a,m</sub>(p) )
+        <span class="cm">&nbsp;&nbsp;// aspect a, plot p, summed over the five raters m</span>
+      </div>
+      <p class="eq-note reveal mb-2">
+        Each pole is scored 1 to 10. A well-executed aspect should score high on the positive prompt and
+        low on the negative one, so the difference is large.
+      </p>
+
+      <div class="prose reveal mb-2">
+        <p>
+          The reward model itself is Qwen-3-32B under 4-bit quantization, fine-tuned with a joint
+          objective. Token-level cross-entropy supervises generation of the target response, while a
+          Huber loss penalises deviation between predicted and target aspect ratings, which keeps the
+          regression head robust to outlying labels.
+        </p>
+      </div>
+
+      <div class="eq reveal">
+        L<sub>CE</sub>(&theta;) = &minus;(1/T) &Sigma;<sub>t=1..T</sub> log p<sub>&theta;</sub>(y<sub>t</sub> | x<sub>1:t</sub>)
+        <br /><br />
+        L<sub>&delta;</sub>(r) = &frac12; r&sup2;<span class="cm">&nbsp;&nbsp;if |r| &le; &delta;</span>
+        <br />
+        L<sub>&delta;</sub>(r) = &delta;(|r| &minus; &frac12;&delta;)<span class="cm">&nbsp;&nbsp;if |r| &gt; &delta;</span>,&nbsp;&nbsp;<span class="cm">with &delta; = 1</span>
+      </div>
+
+      <!-- NQD -->
+      <div class="mt-4">
+        <h3 class="sub reveal"><span class="tag">Rubric</span> Five Narrative Quality Dimensions</h3>
+        <p class="sec-sub reveal mb-2">
+          Drawn from computational narrative modelling and affective narratology, these five dimensions
+          span the structural, temporal, stylistic, character-centric, and affective aspects of narrative
+          quality while keeping the evaluation space compact.
+        </p>
+        <div class="grid-5 reveal">
+          <div class="nqd-card">
+            <span class="idx">NQD 01</span>
+            <h4>Narrative Coherence</h4>
+            <p>Global logical consistency and causal connectivity across the whole arc.</p>
+          </div>
+          <div class="nqd-card">
+            <span class="idx">NQD 02</span>
+            <h4>Character Development</h4>
+            <p>Meaningful character evolution, motivation, and believable transformation.</p>
+          </div>
+          <div class="nqd-card">
+            <span class="idx">NQD 03</span>
+            <h4>Pacing</h4>
+            <p>Distribution of narrative progression, rhythm, and timing of events.</p>
+          </div>
+          <div class="nqd-card">
+            <span class="idx">NQD 04</span>
+            <h4>Tone Consistency</h4>
+            <p>Stylistic alignment, atmosphere, and earned rather than jarring tonal shifts.</p>
+          </div>
+          <div class="nqd-card">
+            <span class="idx">NQD 05</span>
+            <h4>Emotional Turning Points</h4>
+            <p>Effectiveness of the major affective transitions and their payoff.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4.2 Generator -->
+      <div class="mt-4">
+        <h3 class="sub reveal"><span class="tag">4.2</span> Preference-Aligned Plot Generator</h3>
+        <div class="prose reveal mb-2">
+          <p>
+            The generator is Qwen-3-30B-A3B, a mixture-of-experts backbone. It holds 30B total parameters
+            but activates only 3B per token, which is what places it inside our definition of a small
+            language model. Because the base model already follows instructions well, we skip supervised
+            fine-tuning entirely and spend the whole budget on preference optimization.
           </p>
-          <p class="nqd-intro">
-            MoE routing contributes the largest single gain (+0.78 NQD points). DPO alignment
-            refines further, and Positive-Negative prompting solves the reward-noise problem
-            that would otherwise prevent preference learning from converging.
+          <p>
+            Direct Preference Optimization is used rather than full RLHF: it optimizes the preference
+            objective directly, without a separate reward model in the loop or on-policy reinforcement
+            learning, which is what makes alignment affordable at this scale.
           </p>
         </div>
 
-        <div>
-          <!-- NQD bars -->
-          <div class="nqd-bars reveal">
-            <div class="nqd-item">
-              <span class="nqd-label">Character development</span>
-              <div class="nqd-bar-bg"><div class="nqd-bar-fill" style="width:88%"></div></div>
-              <span class="nqd-score">4.4</span>
-            </div>
-            <div class="nqd-item">
-              <span class="nqd-label">Tone consistency</span>
-              <div class="nqd-bar-bg"><div class="nqd-bar-fill" style="width:82%"></div></div>
-              <span class="nqd-score">4.1</span>
-            </div>
-            <div class="nqd-item">
-              <span class="nqd-label">Pacing</span>
-              <div class="nqd-bar-bg"><div class="nqd-bar-fill" style="width:80%"></div></div>
-              <span class="nqd-score">4.0</span>
-            </div>
-            <div class="nqd-item">
-              <span class="nqd-label">Narrative coherence</span>
-              <div class="nqd-bar-bg"><div class="nqd-bar-fill" style="width:90%"></div></div>
-              <span class="nqd-score">4.5</span>
-            </div>
-            <div class="nqd-item">
-              <span class="nqd-label">Emotional turn</span>
-              <div class="nqd-bar-bg"><div class="nqd-bar-fill" style="width:84%"></div></div>
-              <span class="nqd-score">4.2</span>
+        <div class="grid-2 reveal">
+          <div>
+            <p class="sec-label" style="margin-bottom:.9rem">Preference-pair curation</p>
+            <div class="funnel">
+              <div class="funnel-step"><span class="n">5,000</span><span class="t">premises generated from the curated plots using Gemma-27B</span></div>
+              <div class="funnel-arrow">&darr;</div>
+              <div class="funnel-step"><span class="n">4&times;</span><span class="t">candidate plots per premise from the base MoE plus GPT-4.1, Claude Sonnet 4, and Gemini 2.0 Flash</span></div>
+              <div class="funnel-arrow">&darr;</div>
+              <div class="funnel-step"><span class="n">Rank</span><span class="t">all candidates scored by the reward model, aspect ratings averaged into one reward</span></div>
+              <div class="funnel-arrow">&darr;</div>
+              <div class="funnel-step"><span class="n">Filter</span><span class="t">keep only pairs where a frontier model wins outright, scores above 8, and beats the runner-up by at least 0.5</span></div>
+              <div class="funnel-arrow">&darr;</div>
+              <div class="funnel-step final"><span class="n">160</span><span class="t">high-confidence preference pairs used for DPO</span></div>
             </div>
           </div>
-          <p class="nqd-footnote">PlotTwist (3B) on held-out premises. Scale: 1 to 5.</p>
+          <div style="display:flex;flex-direction:column;gap:1.1rem">
+            <div class="callout">
+              <span class="ct">Why so few pairs</span>
+              160 pairs out of 5,000 premises is a severe filter, and that is the point. The thresholds
+              keep only cases where the preference signal is unambiguous, and prior work shows DPO can
+              work well from a small number of high-quality pairs.
+            </div>
+            <div class="card" style="pointer-events:none">
+              <h4>No SFT stage at all</h4>
+              <p>
+                The base model already follows instructions well, so supervised fine-tuning for
+                instruction alignment is skipped entirely. The whole training budget goes to
+                preference optimization, which is what keeps the pipeline affordable.
+              </p>
+            </div>
+            <div class="metrics" style="grid-template-columns:repeat(2,1fr)">
+              <div class="metric">
+                <div class="mv">30B / 3B</div>
+                <div class="ml">Total against active parameters per token</div>
+              </div>
+              <div class="metric">
+                <div class="mv gold">+0.78</div>
+                <div class="ml">Overall gain attributable to DPO alignment</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-          <!-- Validation cards -->
-          <div class="val-grid" style="margin-top:1rem;">
-            <div class="val-card reveal">
-              <span class="val-badge gold">Acclaimed</span>
-              <div class="val-title">101 Greatest Screenplays</div>
-              <div class="val-desc">WGA's canonical list: Chinatown, Sunset Blvd, Network.</div>
-              <div class="val-score high">4.6 avg NQD</div>
-            </div>
-            <div class="val-card reveal" style="transition-delay:.1s">
-              <span class="val-badge red">Critically panned</span>
-              <div class="val-title">Razzie Award Winners</div>
-              <div class="val-desc">Hollywood's anti-Oscars, honouring the worst films each year.</div>
-              <div class="val-score low">2.1 avg NQD</div>
-            </div>
-          </div>
-          <p class="nqd-footnote" style="margin-top:.75rem;">
-            The evaluator correctly separated great from terrible across every NQD before
-            being trusted to judge PlotTwist outputs.
+      <!-- 4.3 Jury -->
+      <div class="mt-4">
+        <h3 class="sub reveal"><span class="tag">4.3</span> Agentic Evaluation with a Cross-Family Jury</h3>
+        <div class="prose reveal mb-2">
+          <p>
+            The reward model cannot also be the referee. It is a predictive model fitted to aspect-level
+            signals in its own training data, so scoring generations with it risks rewarding the patterns
+            it learned rather than genuine narrative soundness. Expert human evaluation is the gold
+            standard but is impractical at this scale, so evaluation is handed to an independent agentic
+            module that shares nothing with the training pipeline.
           </p>
+        </div>
+
+        <figure class="figure reveal">
+          <img src="assets/paper-jury.png" alt="The cross-family jury: five juror models independently score five narrative quality dimensions, two rounds of multi-agent deliberation follow, and a judge model issues the final assessment." loading="lazy" />
+        </figure>
+        <p class="figcaption mb-3"><b>Figure 2.</b> The cross-family jury. Independent scoring, then structured deliberation on contested cells, then consolidation by a held-out judge.</p>
+
+        <p class="sec-label reveal" style="margin-bottom:.9rem">The panel</p>
+        <div class="roster reveal">
+          <div class="juror"><div class="jn">GPT-OSS-120B</div><div class="jf">OpenAI, open-weight</div><div class="jp">MXFP4</div></div>
+          <div class="juror"><div class="jn">Gemma-4-31B</div><div class="jf">Google</div><div class="jp">BF16</div></div>
+          <div class="juror"><div class="jn">Mistral-Medium-3.5</div><div class="jf">Mistral, 128B</div><div class="jp">Q6_K</div></div>
+          <div class="juror"><div class="jn">Nemotron-3-Super</div><div class="jf">NVIDIA, 120B-A12B</div><div class="jp">FP8</div></div>
+          <div class="juror"><div class="jn">GLM-4.6V</div><div class="jf">Zhipu</div><div class="jp">FP8</div></div>
+        </div>
+        <div class="judge-strip reveal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--gold)"><path d="M12 3v18"/><path d="m5 7 7-4 7 4"/><path d="M3 11h6l-3 7-3-7z"/><path d="M15 11h6l-3 7-3-7z"/></svg>
+          Held-out judge: <b>Llama-3.3-70B</b>, from a sixth family disjoint from both the panel and the generator
+        </div>
+
+        <div class="grid-3 reveal mt-3">
+          <div class="card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V6a3 3 0 1 1 6 0v5"/><rect x="5" y="11" width="14" height="10" rx="2"/></svg>
+            </div>
+            <h4>Ten criteria per dimension</h4>
+            <p>Each dimension is specified as ten explicit, instruction-level criteria that turn abstract narrative concepts into observable failure modes. Each is scored on [0, 1] and summed to a score out of ten.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <h4>Evidence grounding</h4>
+            <p>Every criterion score must cite a span quoted verbatim from the plot, which turns written justifications into mechanically checkable claims. Between 94% and 99% of roughly 478,000 quoted spans verify against the source text.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <h4>Blind deliberation</h4>
+            <p>Cells where jurors differ by at least two points go to two rounds of discussion. Jurors see peers' anonymized, order-shuffled arguments and cited spans, but peer scores stay hidden to prevent vote-matching.</p>
+          </div>
+        </div>
+
+        <div class="callout warn reveal mt-3">
+          <span class="ct">Measured, not enforced</span>
+          Grounding is reported rather than imposed. Unverifiable citations are logged instead of silently
+          dropped, which avoids the selection bias that discarding cells would introduce. Where a juror's
+          stated total disagrees with the sum of its criterion scores by more than a point, the sum is
+          used, so every reported total reflects the cited evidence.
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══ RESULTS ══════════════════════════════════════════════════════ -->
+  <!-- ══ EVALUATION VALIDATION ═════════════════════════════════════ -->
+  <section id="evaluation">
+    <div class="container">
+      <div class="sec-head">
+        <p class="sec-label">Validation</p>
+        <h2 class="sec-title">Do the evaluators actually know good writing?</h2>
+        <p class="sec-sub">
+          Before trusting either scorer, we test whether it separates writing that human critics already
+          agreed about. Acclaimed plots come from the 101 Greatest Screenplays of All Time; panned plots
+          come from the Golden Raspberry Screenplay Awards.
+        </p>
+      </div>
+
+      <div class="prose reveal mb-3">
+        <p>
+          The two sets are imbalanced, 37 Razzie against 94 GSAT, so we use repeated balanced
+          subsampling: fix the Razzie set, draw an equal number of GSAT films, and repeat over 1,000 runs.
+        </p>
+      </div>
+
+      <div class="grid-2 reveal">
+        <div>
+          <p class="sec-label" style="margin-bottom:.9rem">Aspect Rating Reward Model</p>
+          <div class="split">
+            <div class="side acclaimed">
+              <div class="sv">8.28</div>
+              <div class="sl">Acclaimed<br />(GSAT)</div>
+            </div>
+            <div class="delta">+1.07</div>
+            <div class="side panned">
+              <div class="sv">7.21</div>
+              <div class="sl">Panned<br />(Razzies)</div>
+            </div>
+          </div>
+          <p class="table-note">
+            95% CI [0.96, 1.19]. GSAT wins in 100% of subsampling runs. Largest gaps in pacing (+1.41),
+            emotional turning points (+1.13), and narrative coherence (+1.12). Effect sizes are large
+            throughout, Cohen's d from 2.77 to 4.68, and Welch's t-test on the aggregate gives
+            t = 9.69, p = 3.41 &times; 10<sup>&minus;18</sup>.
+          </p>
+        </div>
+        <div>
+          <p class="sec-label" style="margin-bottom:.9rem">Cross-Family Jury</p>
+          <div class="split">
+            <div class="side acclaimed">
+              <div class="sv">8.33</div>
+              <div class="sl">Acclaimed<br />(GSAT)</div>
+            </div>
+            <div class="delta">+1.75</div>
+            <div class="side panned">
+              <div class="sv">6.58</div>
+              <div class="sl">Panned<br />(Razzies)</div>
+            </div>
+          </div>
+          <p class="table-note">
+            95% CI [1.66, 1.85], again 100% of runs. The jury separates more sharply than the reward model,
+            especially on narrative coherence (+2.64), tone consistency (+1.99), and pacing (+1.91).
+            Cohen's d from 4.36 to 9.34, aggregate t = 16.54,
+            p = 2.96 &times; 10<sup>&minus;38</sup>.
+          </p>
+        </div>
+      </div>
+
+      <div class="callout reveal mt-3">
+        <span class="ct">What this establishes</span>
+        Both scorers reliably distinguish critically acclaimed from critically panned writing across every
+        dimension. The evaluation machinery is anchored to outside human judgment before it is ever used
+        to rank systems.
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ RESULTS ═══════════════════════════════════════════════════ -->
   <section id="results">
     <div class="container">
-      <p class="section-label">Experiments</p>
-      <h2 class="section-title">Key Results</h2>
-      <div class="section-divider"></div>
-
-      <div class="callout-banner reveal">
-        <div class="callout-icon">🚀</div>
-        <div class="callout-text">
-          A <em>3B PlotTwist model</em> outperforms <em>600B frontier models</em>
-          on creative plot quality, measured holistically across all five Narrative Quality Dimensions.
-        </div>
+      <div class="sec-head">
+        <p class="sec-label">Results</p>
+        <h2 class="sec-title">Against eleven baselines</h2>
+        <p class="sec-sub">
+          Baselines were chosen along three orthogonal axes: model scale, architectural design, and
+          generation paradigm. Evaluation runs on a held-out set of 160 premises under the cross-family
+          jury protocol.
+        </p>
       </div>
 
-      <div class="results-cols">
-        <div class="results-table-wrap reveal">
-          <table>
-            <thead>
-              <tr>
-                <th>Model</th><th>Params</th><th>NQD Score</th><th>Rank</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="ours-row">
-                <td><strong>PlotTwist</strong></td><td>3B</td><td>8.74</td>
-                <td><span class="rank-badge rank-1">1</span></td>
-              </tr>
-              <tr>
-                <td>GPT-4.1</td><td>~1.8T</td><td>8.41</td>
-                <td><span class="rank-badge rank-2">2</span></td>
-              </tr>
-              <tr>
-                <td>Claude 3.5 Sonnet</td><td>~200B</td><td>8.29</td>
-                <td><span class="rank-badge rank-3">3</span></td>
-              </tr>
-              <tr>
-                <td>Gemini 1.5 Pro</td><td>~340B</td><td>8.12</td>
-                <td><span class="rank-badge rank-4">4</span></td>
-              </tr>
-              <tr>
-                <td>Llama 3.1 70B</td><td>70B</td><td>7.88</td>
-                <td><span class="rank-badge rank-4">5</span></td>
-              </tr>
-              <tr>
-                <td>Mistral 7B (base)</td><td>7B</td><td>7.03</td>
-                <td><span class="rank-badge rank-4">6</span></td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="chart-box h-420 reveal mb-2"><canvas id="overallChart"></canvas></div>
+      <p class="figcaption mb-3">Overall jury score, averaged across the five dimensions, for all twelve systems.</p>
+
+      <h3 class="sub reveal"><span class="tag">Table 1</span> Per-dimension scores</h3>
+      <div class="table-wrap reveal mt-1">
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Character<br />Development</th>
+              <th>Tone<br />Consistency</th>
+              <th>Pacing</th>
+              <th>Narrative<br />Coherence</th>
+              <th>Emotional<br />Turning Points</th>
+              <th>Overall</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Claude Sonnet 4</td>
+              <td><span class="best">8.30</span> <span class="sd">&plusmn;0.41</span></td>
+              <td><span class="second">8.23</span> <span class="sd">&plusmn;0.35</span></td>
+              <td><span class="second">8.09</span> <span class="sd">&plusmn;0.24</span></td>
+              <td><span class="second">8.49</span> <span class="sd">&plusmn;0.38</span></td>
+              <td><span class="best">8.63</span> <span class="sd">&plusmn;0.24</span></td>
+              <td><span class="second">8.35</span> <span class="sd">&plusmn;0.24</span></td>
+            </tr>
+            <tr>
+              <td>Agents' Room</td>
+              <td><span class="second">8.15</span> <span class="sd">&plusmn;0.38</span></td>
+              <td>8.15 <span class="sd">&plusmn;0.37</span></td>
+              <td>7.97 <span class="sd">&plusmn;0.37</span></td>
+              <td>8.40 <span class="sd">&plusmn;0.34</span></td>
+              <td>8.57 <span class="sd">&plusmn;0.38</span></td>
+              <td>8.25 <span class="sd">&plusmn;0.26</span></td>
+            </tr>
+            <tr>
+              <td>GPT-4.1</td>
+              <td>7.88 <span class="sd">&plusmn;0.52</span></td>
+              <td>8.14 <span class="sd">&plusmn;0.29</span></td>
+              <td>7.99 <span class="sd">&plusmn;0.19</span></td>
+              <td>8.37 <span class="sd">&plusmn;0.34</span></td>
+              <td>8.41 <span class="sd">&plusmn;0.28</span></td>
+              <td>8.16 <span class="sd">&plusmn;0.24</span></td>
+            </tr>
+            <tr>
+              <td>Gemini 2.0 Flash</td>
+              <td>8.01 <span class="sd">&plusmn;0.41</span></td>
+              <td>7.98 <span class="sd">&plusmn;0.32</span></td>
+              <td>7.91 <span class="sd">&plusmn;0.19</span></td>
+              <td>8.27 <span class="sd">&plusmn;0.32</span></td>
+              <td>8.40 <span class="sd">&plusmn;0.29</span></td>
+              <td>8.11 <span class="sd">&plusmn;0.24</span></td>
+            </tr>
+            <tr>
+              <td>Qwen3-32B</td>
+              <td>7.66 <span class="sd">&plusmn;0.57</span></td>
+              <td>8.10 <span class="sd">&plusmn;0.34</span></td>
+              <td>7.62 <span class="sd">&plusmn;0.39</span></td>
+              <td>7.83 <span class="sd">&plusmn;0.57</span></td>
+              <td>8.28 <span class="sd">&plusmn;0.31</span></td>
+              <td>7.90 <span class="sd">&plusmn;0.33</span></td>
+            </tr>
+            <tr>
+              <td>Qwen-2.5-14B</td>
+              <td>7.41 <span class="sd">&plusmn;0.59</span></td>
+              <td>7.53 <span class="sd">&plusmn;0.43</span></td>
+              <td>7.52 <span class="sd">&plusmn;0.31</span></td>
+              <td>7.69 <span class="sd">&plusmn;0.48</span></td>
+              <td>7.95 <span class="sd">&plusmn;0.39</span></td>
+              <td>7.62 <span class="sd">&plusmn;0.33</span></td>
+            </tr>
+            <tr>
+              <td>DeepSeek-R1-14B</td>
+              <td>7.29 <span class="sd">&plusmn;0.66</span></td>
+              <td>7.67 <span class="sd">&plusmn;0.42</span></td>
+              <td>7.53 <span class="sd">&plusmn;0.31</span></td>
+              <td>7.61 <span class="sd">&plusmn;0.48</span></td>
+              <td>7.89 <span class="sd">&plusmn;0.41</span></td>
+              <td>7.60 <span class="sd">&plusmn;0.35</span></td>
+            </tr>
+            <tr>
+              <td>Mistral Small 24B</td>
+              <td>7.38 <span class="sd">&plusmn;0.54</span></td>
+              <td>7.70 <span class="sd">&plusmn;0.42</span></td>
+              <td>7.49 <span class="sd">&plusmn;0.31</span></td>
+              <td>7.57 <span class="sd">&plusmn;0.53</span></td>
+              <td>7.85 <span class="sd">&plusmn;0.42</span></td>
+              <td>7.60 <span class="sd">&plusmn;0.34</span></td>
+            </tr>
+            <tr>
+              <td>Llama-3.3-70B</td>
+              <td>7.11 <span class="sd">&plusmn;0.69</span></td>
+              <td>7.39 <span class="sd">&plusmn;0.55</span></td>
+              <td>6.94 <span class="sd">&plusmn;0.56</span></td>
+              <td>6.89 <span class="sd">&plusmn;0.75</span></td>
+              <td>7.56 <span class="sd">&plusmn;0.53</span></td>
+              <td>7.18 <span class="sd">&plusmn;0.48</span></td>
+            </tr>
+            <tr>
+              <td>WizardLM-30B</td>
+              <td>6.52 <span class="sd">&plusmn;0.80</span></td>
+              <td>7.07 <span class="sd">&plusmn;0.55</span></td>
+              <td>6.81 <span class="sd">&plusmn;0.55</span></td>
+              <td>6.53 <span class="sd">&plusmn;0.70</span></td>
+              <td>6.97 <span class="sd">&plusmn;0.62</span></td>
+              <td>6.78 <span class="sd">&plusmn;0.51</span></td>
+            </tr>
+            <tr>
+              <td>Phi-4 Mini</td>
+              <td>6.58 <span class="sd">&plusmn;0.94</span></td>
+              <td>6.95 <span class="sd">&plusmn;1.27</span></td>
+              <td>6.27 <span class="sd">&plusmn;1.55</span></td>
+              <td>6.21 <span class="sd">&plusmn;1.54</span></td>
+              <td>6.88 <span class="sd">&plusmn;1.07</span></td>
+              <td>6.58 <span class="sd">&plusmn;1.18</span></td>
+            </tr>
+            <tr class="highlight">
+              <td>PlotTwist</td>
+              <td>8.11 <span class="sd">&plusmn;0.60</span></td>
+              <td><span class="best">8.42</span> <span class="sd">&plusmn;0.41</span></td>
+              <td><span class="best">8.14</span> <span class="sd">&plusmn;0.33</span></td>
+              <td><span class="best">8.51</span> <span class="sd">&plusmn;0.44</span></td>
+              <td><span class="second">8.61</span> <span class="sd">&plusmn;0.32</span></td>
+              <td><span class="best">8.36</span> <span class="sd">&plusmn;0.35</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">
+        Mean &plusmn; standard deviation over 160 test premises under the cross-family jury. Best result in
+        each column is <span class="best">bold</span>, second best is <span class="second">underlined</span>.
+        PlotTwist leads on narrative coherence, tone consistency, pacing, and overall score, using 3B active
+        parameters.
+      </p>
+
+      <div class="chart-box h-460 reveal mt-4"><canvas id="radarChart"></canvas></div>
+      <p class="figcaption mb-3">Dimension-by-dimension comparison against the three strongest baselines.</p>
+
+      <!-- Win rates -->
+      <div class="mt-4">
+        <h3 class="sub reveal"><span class="tag">Table 2</span> Per-premise win rates</h3>
+        <p class="sec-sub reveal mb-2">
+          Because the top overall means sit within hundredths of each other, the pre-specified primary
+          endpoint is the paired per-premise win rate, with ties counted as 0.5, premise-level bootstrap
+          confidence intervals, and Holm-corrected exact sign tests.
+        </p>
+
+        <div class="panel reveal">
+          <div class="wr-list" id="wrList">
+            <div class="wr-row"><span class="wr-name">Claude Sonnet 4</span><div class="wr-track"><div class="wr-fill tie" data-w="56.3"></div></div><span class="wr-val">0.563<small>p = 0.13</small></span></div>
+            <div class="wr-row"><span class="wr-name">Agents' Room</span><div class="wr-track"><div class="wr-fill" data-w="73.4"></div></div><span class="wr-val">0.734<small>4.4e&minus;9</small></span></div>
+            <div class="wr-row"><span class="wr-name">GPT-4.1</span><div class="wr-track"><div class="wr-fill" data-w="90.6"></div></div><span class="wr-val">0.906<small>2.0e&minus;27</small></span></div>
+            <div class="wr-row"><span class="wr-name">Gemini 2.0 Flash</span><div class="wr-track"><div class="wr-fill" data-w="93.8"></div></div><span class="wr-val">0.938<small>1.3e&minus;32</small></span></div>
+            <div class="wr-row"><span class="wr-name">Qwen-3-32B</span><div class="wr-track"><div class="wr-fill" data-w="98.7"></div></div><span class="wr-val">0.987<small>2.1e&minus;43</small></span></div>
+            <div class="wr-row"><span class="wr-name">Qwen-2.5-14B</span><div class="wr-track"><div class="wr-fill" data-w="95.0"></div></div><span class="wr-val">0.950<small>6.4e&minus;35</small></span></div>
+            <div class="wr-row"><span class="wr-name">Mistral Small 24B</span><div class="wr-track"><div class="wr-fill" data-w="99.4"></div></div><span class="wr-val">0.994<small>2.4e&minus;45</small></span></div>
+            <div class="wr-row"><span class="wr-name">DeepSeek-R1-14B</span><div class="wr-track"><div class="wr-fill" data-w="99.4"></div></div><span class="wr-val">0.994<small>2.4e&minus;45</small></span></div>
+            <div class="wr-row"><span class="wr-name">Llama-3.3-70B</span><div class="wr-track"><div class="wr-fill" data-w="98.8"></div></div><span class="wr-val">0.988<small>1.2e&minus;43</small></span></div>
+            <div class="wr-row"><span class="wr-name">WizardLM-30B</span><div class="wr-track"><div class="wr-fill" data-w="99.4"></div></div><span class="wr-val">0.994<small>2.4e&minus;45</small></span></div>
+            <div class="wr-row"><span class="wr-name">Phi-4 Mini</span><div class="wr-track"><div class="wr-fill" data-w="99.4"></div></div><span class="wr-val">0.994<small>2.4e&minus;45</small></span></div>
+          </div>
+        </div>
+        <p class="table-note">
+          The tick on each bar marks 0.5, the point of no preference. Grey marks the one comparison that is
+          not statistically resolved.
+        </p>
+
+        <div class="callout warn reveal mt-3">
+          <span class="ct">The honest reading of the Claude comparison</span>
+          At 0.56 with a 95% CI of [0.49, 0.64], neither the sign test (p = 0.13) nor an equivalence test
+          establishes superiority or equivalence. The paper therefore claims only that PlotTwist is
+          <strong>competitive</strong> with Claude Sonnet 4, and nothing stronger. Four jurors individually
+          favour PlotTwist at 0.59 to 0.63, while Gemma-4-31B, the panel's most conservative scorer, favours
+          Claude at 0.34.
         </div>
 
-        <div class="chart-wrap reveal" style="transition-delay:.15s">
-          <div class="chart-title">NQD Score by Model</div>
-          <div class="chart-container">
-            <canvas id="resultsChart"></canvas>
-          </div>
+        <div class="metrics reveal mt-3">
+          <div class="metric"><div class="mv">0.65 to 0.90</div><div class="ml">Per-juror win rate against GPT-4.1, every juror prefers PlotTwist</div></div>
+          <div class="metric"><div class="mv">&ge; 0.85</div><div class="ml">Panel win rate against GPT-4.1 with any single juror removed</div></div>
+          <div class="metric"><div class="mv">0.99</div><div class="ml">Win rate against dense Qwen3-32B, at roughly a tenth of the active parameters</div></div>
+          <div class="metric"><div class="mv gold">+0.78</div><div class="ml">Overall gain from DPO alignment, 8.03 to 8.81 on the development evaluator</div></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══ EXAMPLES ═════════════════════════════════════════════════════ -->
-  <section id="examples">
+  <!-- ══ ANALYSIS ══════════════════════════════════════════════════ -->
+  <section id="analysis">
     <div class="container">
-      <p class="section-label">Qualitative Analysis</p>
-      <h2 class="section-title">Sample Generated Plots</h2>
-      <div class="section-divider"></div>
+      <div class="sec-head">
+        <p class="sec-label">Analysis</p>
+        <h2 class="sec-title">Quality-adaptive, not score-inflating</h2>
+        <p class="sec-sub">
+          A generator that simply pushes every score upward would be suspicious. We test what PlotTwist
+          does across source material of different quality, using 160 films split into four IMDb-defined
+          strata of 40 each, comparing generated plots against their paired originals.
+        </p>
+      </div>
 
-      <div class="examples-grid">
-        <div class="example-card reveal">
-          <div class="example-genre">🎭 Drama</div>
-          <div class="example-label">Input Premise</div>
-          <div class="example-premise">
-            A retired concert pianist discovers her late daughter's unfinished composition
-            hidden inside a secondhand piano, and must decide whether to complete it or let
-            the silence speak for itself.
-          </div>
-          <div class="example-label">Generated Plot</div>
-          <p class="example-plot">
-            Eleanor's hands tremble as she lifts the yellowed score from the piano bench,
-            sixteen bars in her daughter's unmistakable hand, then silence on the staff.
-            Each night she sits at the Steinway, the notation blurring through tears she
-            refuses to shed, bargaining with memory as much as music. When a young conservatory
-            student discovers the manuscript online after Eleanor photographs it by accident,
-            the world's hunger for closure forces her to confront whether completion is love
-            or erasure, and whether grief's truest monument is sound or its deliberate absence.
+      <div class="chart-box h-340 reveal mb-2"><canvas id="strataChart"></canvas></div>
+      <p class="figcaption mb-3">Original against PlotTwist-generated overall jury score, by source quality stratum.</p>
+
+      <div class="table-wrap reveal">
+        <table>
+          <thead>
+            <tr>
+              <th>Stratum</th>
+              <th>Original</th>
+              <th>Generated</th>
+              <th>&Delta;</th>
+              <th>95% CI</th>
+              <th>d<sub>z</sub></th>
+              <th>P(gen &gt; orig)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Excellent <span class="sd">IMDb &gt; 8</span></td>
+              <td>8.14</td><td>8.45</td><td>+0.31</td><td>[0.09, 0.57]</td><td>0.38</td><td>0.65</td>
+            </tr>
+            <tr>
+              <td>Good <span class="sd">7 to 8</span></td>
+              <td>7.75</td><td>8.40</td><td>+0.65</td><td>[0.51, 0.79]</td><td>1.40</td><td>0.93</td>
+            </tr>
+            <tr>
+              <td>Mid <span class="sd">6 to 7</span></td>
+              <td>7.40</td><td>8.37</td><td>+0.98</td><td>[0.81, 1.17]</td><td>1.68</td><td>0.98</td>
+            </tr>
+            <tr>
+              <td>Low <span class="sd">IMDb &le; 6</span></td>
+              <td>7.01</td><td>8.28</td><td>+1.28</td><td>[1.09, 1.48]</td><td>2.01</td><td>1.00</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">
+        Overall improvement rises monotonically as source quality falls. Note the generated column: it stays
+        near 8.3 to 8.45 regardless of what it started from, which is the signature of a system converging on
+        a quality ceiling rather than adding a constant offset.
+      </p>
+
+      <div class="grid-2 reveal mt-3">
+        <div class="card">
+          <h4>Conservative on strong source material</h4>
+          <p>
+            In the Excellent stratum the clearest gains are character development (+0.50) and narrative
+            coherence (+0.40), while pacing is unchanged within uncertainty (&minus;0.02, CI [&minus;0.21, 0.19]).
+            Where the original already works, PlotTwist mostly leaves it alone.
           </p>
         </div>
+        <div class="card">
+          <h4>Restructuring on weak source material</h4>
+          <p>
+            In the Low stratum narrative coherence gains +1.82 and tone consistency +1.40, and generated
+            plots beat their paired originals on at least 97.5% of films across every dimension. This is
+            close to full narrative regeneration.
+          </p>
+        </div>
+      </div>
 
-        <div class="example-card reveal" style="transition-delay:.1s">
-          <div class="example-genre">🔪 Thriller</div>
-          <div class="example-label">Input Premise</div>
-          <div class="example-premise">
-            A forensic linguist is hired to authenticate a ransom note, only to recognise
-            the phrasing patterns as her own from a novel she published under a pseudonym
-            fifteen years ago.
+      <!-- Reliability -->
+      <div class="mt-4">
+        <h3 class="sub reveal"><span class="tag">Reliability</span> How much should you trust the jury?</h3>
+        <p class="sec-sub reveal mb-2">
+          The paper is unusually candid here, and reports the weaknesses of its own evaluation protocol
+          alongside the results.
+        </p>
+
+        <div class="grid-2 reveal">
+          <div>
+            <div class="table-wrap">
+              <table style="min-width:0">
+                <thead>
+                  <tr><th>Dimension</th><th>Krippendorff &alpha;</th><th>Gwet AC2</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Narrative coherence</td><td>0.504</td><td>0.889</td></tr>
+                  <tr><td>Emotional turning points</td><td>0.280</td><td>0.827</td></tr>
+                  <tr><td>Character development</td><td>0.405</td><td>0.863</td></tr>
+                  <tr><td>Pacing</td><td>0.476</td><td>0.932</td></tr>
+                  <tr><td>Tone consistency</td><td>0.366</td><td>0.911</td></tr>
+                  <tr class="highlight"><td>Pooled</td><td>0.413</td><td>0.887</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="table-note">
+              Raw agreement is only moderate, and lowest on the most subjective dimensions. The
+              skew-robust AC2 stays high everywhere, the pattern you get from judges who agree on ordering
+              but differ in leniency. Recentering each judge lifts pooled &alpha; from 0.413 to 0.641.
+            </p>
           </div>
-          <div class="example-label">Generated Plot</div>
-          <p class="example-plot">
-            Dr. Mara Voss flags the note's subordinate clause inversions before she
-            registers whose they are: hers, from Chapter 9 of <em>The Quiet Hostage</em>,
-            a novel she thought was buried. Someone has studied her fiction like a playbook,
-            and the kidnapped girl's life now runs on a clock set to Mara's own plot structure.
-            Racing to predict the next chapter before her shadow self does, she must expose
-            her pseudonym and the desperate decade that spawned it to the only detective
-            who might believe a thriller novelist is simultaneously the key witness
-            and the unwilling co-author of a real crime.
+          <div style="display:flex;flex-direction:column;gap:1.1rem">
+            <div class="callout warn">
+              <span class="ct">Five judges are not five opinions</span>
+              Judge errors are correlated. The Kish effective judge count is <strong>1.35 of 5</strong> on raw
+              scores, and 1.81 after removing system and premise effects. That is why the per-judge and
+              leave-one-judge-out analyses, not the panel average, are treated as the results that carry
+              evidential weight.
+            </div>
+            <div class="callout">
+              <span class="ct">Rankings are stable even so</span>
+              Mean pairwise Spearman across jurors is 0.97 and Kendall's W is 0.98. Enforcing grounding at
+              any threshold leaves the ranking of the twelve systems essentially unchanged, Spearman
+              &ge; 0.99, and moves the two closest win rates by at most 0.04.
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-3 reveal mt-3">
+          <div class="card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            </div>
+            <h4>Same-family bias audit</h4>
+            <p>Adding an in-family Qwen judge shows that judges score their own family 0.82 points higher, CI [0.80, 0.84]. PlotTwist does not benefit: its leniency-corrected same-family inflation is negative at &minus;0.47, and removing all same-family cells leaves the ranking unchanged.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg>
+            </div>
+            <h4>Specification curve, 113 analyses</h4>
+            <p>Both close comparisons are recomputed under every defensible combination of juror subset, aggregation, score basis, tie handling, grounding, and length control. Against GPT-4.1 the win rate stays within [0.80, 0.92] and every interval excludes 0.5. Against Claude the median is 0.556 and 94.7% of specifications land at or above 0.5.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="m5 7 7-4 7 4"/><path d="M3 11h6l-3 7-3-7z"/><path d="M15 11h6l-3 7-3-7z"/></svg>
+            </div>
+            <h4>Deliberation changes little</h4>
+            <p>Agreement moves only from &alpha; = 0.455 to 0.458, two premise-level verdicts flip, and no conclusion changes. The held-out judge reproduces the panel: 0.89 against GPT-4.1, 0.92 against Gemini 2.0 Flash, 0.74 against Agents' Room, 0.57 against Claude Sonnet 4.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ablation -->
+      <div class="mt-4">
+        <h3 class="sub reveal"><span class="tag">Ablation</span> Where the gains come from</h3>
+        <div class="prose reveal">
+          <p>
+            The jury results rule out scale, architecture, and paradigm as the explanation. PlotTwist beats
+            similarly sized instruction-tuned models (Qwen2.5-14B at 7.62, DeepSeek-R1-14B at 7.60), beats
+            the dense Qwen3-32B baseline at 7.90 while using roughly one tenth as many active parameters per
+            token, and beats the multi-agent Agents' Room framework at 8.25 using a single model and a single
+            inference pass.
+          </p>
+          <p>
+            Isolating preference optimization directly, the base Qwen-3-30B-A3B model scores 8.03 before DPO
+            and 8.81 after, a gain of +0.78 from 160 curated preference pairs.
           </p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══ CITATION ═════════════════════════════════════════════════════ -->
+  <!-- ══ EXAMPLE ═══════════════════════════════════════════════════ -->
+  <section id="example">
+    <div class="container">
+      <div class="sec-head">
+        <p class="sec-label">Qualitative</p>
+        <h2 class="sec-title">What it actually writes</h2>
+      </div>
+
+      <div class="premise-box reveal">
+        <p class="pl">Premise</p>
+        <p>
+          Generate a movie plot that follows a dedicated detective as he investigates a murder that
+          implicates his beloved, forcing him to navigate a web of concealed truths, blackmail, and the
+          desperate lengths one will go to protect a dark secret.
+        </p>
+      </div>
+
+      <div class="plot-box reveal">
+        <p class="pl">PlotTwist generated plot, abridged</p>
+        <p>
+          Detective Aris Thorne, a man whose sharp eyes and even sharper instincts have solved countless
+          cases but whose heart remains scarred by the unsolved murder of his wife Elara five years prior,
+          finds his world shattered when the body of City Councilman Silas Croft is discovered in his
+          opulent penthouse with a single, precise stab wound to the heart.
+        </p>
+        <p>
+          The evidence points damningly toward Lena Voss, Aris's former lover and now a devoted social
+          worker fighting for the city's forgotten children. Witnesses report a heated argument hours
+          before the death, and a fragmented security recording captures her leaving the building, her face
+          pale with fear. A rare antique switchblade, identical to one Aris gifted Lena years earlier, is
+          found clutched in Croft's hand.
+        </p>
+        <p>
+          As Aris investigates further, the case reveals a labyrinth of concealed truths. Croft was not
+          merely corrupt; he was the linchpin of an extensive blackmail network exploiting vulnerable
+          families. The encrypted files reveal that Croft had been threatening Lena with exposure, not only
+          of her past, but of evidence tied directly to Elara's death.
+        </p>
+        <p>
+          The blackmail was never solely about Lena. It was about Aris himself. Aris uncovers the final
+          truth: Elara had been investigating Croft's operations as a journalist and was killed in a staged
+          car accident when she came too close. In a climactic confrontation at the rain-lashed docks, Aris
+          dismantles the remnants of Croft's network, but the true reckoning is internal. Choosing love over
+          career, he confesses to the murder to protect Lena, sacrificing his badge and freedom.
+        </p>
+      </div>
+      <p class="figcaption mt-1">
+        Abridged from Appendix D of the paper. The full generated plot appears there in its entirety.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══ RESOURCES / LIMITATIONS ═══════════════════════════════════ -->
+  <section id="resources">
+    <div class="container">
+      <div class="sec-head">
+        <p class="sec-label">Practicalities</p>
+        <h2 class="sec-title">Compute and caveats</h2>
+      </div>
+
+      <div class="grid-2 reveal">
+        <div>
+          <h3 class="sub"><span class="tag">Hardware</span></h3>
+          <div class="panel">
+            <div class="metrics" style="grid-template-columns:repeat(2,1fr);border:none;background:transparent;gap:1.25rem">
+              <div class="metric" style="background:var(--panel-2);border-radius:var(--r-sm)">
+                <div class="mv">4 &times; L40S</div>
+                <div class="ml">NVIDIA GPUs, one dedicated cluster</div>
+              </div>
+              <div class="metric" style="background:var(--panel-2);border-radius:var(--r-sm)">
+                <div class="mv">192 GB</div>
+                <div class="ml">Aggregate GPU memory, 48 GB per card</div>
+              </div>
+            </div>
+            <p class="table-note" style="margin-top:1.1rem">
+              Every open-weight model, including all training, all baselines, the rating ensemble, and the
+              full jury, runs locally on this cluster at pinned revisions and temperature 0.1. Each run
+              records model revision, quantization, serving engine, and decoding parameters in a manifest,
+              so scores can be regenerated. Only the three closed frontier models are accessed through
+              commercial APIs.
+            </p>
+          </div>
+        </div>
+        <div>
+          <h3 class="sub"><span class="tag">Limitations</span></h3>
+          <div class="panel" style="height:calc(100% - 3.1rem)">
+            <ul class="lim-list">
+              <li>Plot quality is assessed by LLM judges rather than expert annotators, and LLM judges agree only moderately with expert readers on creative writing.</li>
+              <li>The comparison with Claude Sonnet 4 remains statistically unresolved at 160 premises.</li>
+              <li>Correlated juror errors reduce the number of effectively independent opinions the panel provides.</li>
+              <li>Experiments are confined to English, synopsis-style plots scored on five craft-oriented dimensions.</li>
+              <li>Reward and preference data are constructed offline with the aid of larger models.</li>
+              <li>Notions of quality such as novelty are left to future work, as are other narrative forms and languages.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CITATION ══════════════════════════════════════════════════ -->
   <section id="citation">
     <div class="container">
-      <p class="section-label">Reference</p>
-      <h2 class="section-title">Citation</h2>
-      <div class="section-divider"></div>
+      <div class="sec-head">
+        <p class="sec-label">Reference</p>
+        <h2 class="sec-title">Citation</h2>
+      </div>
 
       <div class="bibtex-wrap reveal">
         <div class="bibtex-header">
           <span class="bibtex-lang">BibTeX</span>
-          <button class="copy-btn" id="copyBtn" onclick="copyBibtex()">
+          <button class="copy-btn" id="copyBtn" type="button">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             Copy
           </button>
         </div>
-        <pre class="bibtex" id="bibtexBlock"><span class="brace">@article{</span><span class="key">thorat2026plottwist</span><span class="brace">,</span>
+        <pre class="bibtex" id="bibtexBlock"><span class="brace">@inproceedings{</span><span class="key">thorat2026plottwist</span><span class="brace">,</span>
   <span class="field">title</span>     = <span class="brace">{</span><span class="val">PlotTwist: A Creative Plot Generation Framework with Small Language Models</span><span class="brace">},</span>
   <span class="field">author</span>    = <span class="brace">{</span><span class="val">Thorat, Abhinav and Kolla, Ravi and Goel, Jyotin and Pedanekar, Niranjan</span><span class="brace">},</span>
-  <span class="field">journal</span>   = <span class="brace">{</span><span class="val">arXiv preprint arXiv:2603.16410</span><span class="brace">},</span>
+  <span class="field">booktitle</span> = <span class="brace">{</span><span class="val">Proceedings of LUHME at EMNLP 2026</span><span class="brace">},</span>
   <span class="field">year</span>      = <span class="brace">{</span><span class="val">2026</span><span class="brace">}</span>
 <span class="brace">}</span></pre>
       </div>
     </div>
   </section>
 
-  <!-- ══ FOOTER ═══════════════════════════════════════════════════════ -->
+  <!-- ══ FOOTER ════════════════════════════════════════════════════ -->
   <footer>
     <div class="footer-inner">
-      <div class="footer-brand">Sony Research India · 2026</div>
-      <ul class="footer-links">
-        <li><a href="https://arxiv.org/abs/2603.16410">Paper</a></li>
-      </ul>
+      <div class="footer-brand">Sony Research India &middot; 2026</div>
+      <div class="footer-venue">Accepted at LUHME &middot; EMNLP 2026</div>
     </div>
   </footer>
 </div>
 
-  <!-- ══ SCRIPTS ══════════════════════════════════════════════════════ -->
-  <script>
-    /* Film-strip holes */
-    function buildFilmstrip(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const count = Math.ceil(window.innerWidth / 46) + 2;
-      el.innerHTML = Array(count).fill('<div class="filmstrip-hole"></div>').join('');
-    }
-    buildFilmstrip('filmstripTop');
-    buildFilmstrip('filmstripBottom');
+<script>
+(function () {
+  'use strict';
 
-    /* Scroll-reveal */
-    const revealObs = new IntersectionObserver(
-      entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
-      { threshold: 0.1 }
-    );
-    document.querySelectorAll('.reveal').forEach(r => revealObs.observe(r));
+  /* ── Scroll progress ─────────────────────────────────────────── */
+  var progress = document.getElementById('progress');
+  function updateProgress() {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    progress.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }
+  window.addEventListener('scroll', updateProgress, { passive: true });
+  updateProgress();
 
-    /* Active nav link */
-    const navLinks = document.querySelectorAll('.nav-links a');
-    const secObs = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          navLinks.forEach(l => l.style.color = '');
-          const a = document.querySelector(`.nav-links a[href="#${e.target.id}"]`);
-          if (a) a.style.color = 'var(--teal-light)';
-        }
+  /* ── Scroll reveal ───────────────────────────────────────────── */
+  var revealObs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(function (el) { revealObs.observe(el); });
+
+  /* ── Win-rate bar fill on reveal ─────────────────────────────── */
+  var wrList = document.getElementById('wrList');
+  if (wrList) {
+    var wrObs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        wrList.querySelectorAll('.wr-fill').forEach(function (bar, i) {
+          setTimeout(function () { bar.style.width = bar.dataset.w + '%'; }, i * 65);
+        });
+        wrObs.disconnect();
       });
-    }, { threshold: 0.35 });
-    document.querySelectorAll('section[id]').forEach(s => secObs.observe(s));
+    }, { threshold: 0.25 });
+    wrObs.observe(wrList);
+  }
 
-    /* Chart.js */
-    (function() {
-      const ctx = document.getElementById('resultsChart').getContext('2d');
-      const labels = ['PlotTwist', 'GPT-4.1', 'Claude 3.5\nSonnet', 'Gemini\n1.5 Pro', 'Llama 3.1\n70B', 'Mistral 7B\n(base)'];
-      const scores = [8.74, 8.41, 8.29, 8.12, 7.88, 7.03];
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: 'NQD Score',
-            data: scores,
-            backgroundColor: scores.map((_, i) => i === 0 ? 'rgba(13,148,136,.9)' : 'rgba(75,85,99,.6)'),
-            borderColor:     scores.map((_, i) => i === 0 ? '#0d9488' : '#4b5563'),
-            borderWidth: 2, borderRadius: 6, borderSkipped: false,
-          }]
+  /* ── Active nav link ─────────────────────────────────────────── */
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav-links a'));
+  var sections = links
+    .map(function (l) { return document.querySelector(l.getAttribute('href')); })
+    .filter(Boolean);
+
+  function syncNav() {
+    var pos = window.scrollY + 140;
+    var current = sections[0];
+    sections.forEach(function (s) { if (s.offsetTop <= pos) current = s; });
+    links.forEach(function (l) {
+      l.classList.toggle('active', l.getAttribute('href') === '#' + current.id);
+    });
+  }
+  window.addEventListener('scroll', syncNav, { passive: true });
+  syncNav();
+
+  /* ── Chart defaults ──────────────────────────────────────────── */
+  if (window.Chart) {
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.color = '#8593a7';
+    Chart.defaults.animation.duration = 900;
+  }
+
+  var GRID = 'rgba(148,163,184,.10)';
+  var TEAL = '#14b8a6';
+  var TEAL_L = '#5eead4';
+  var GREY = 'rgba(100,116,139,.55)';
+
+  function tip(extra) {
+    return Object.assign({
+      backgroundColor: '#0b0f16',
+      borderColor: 'rgba(148,163,184,.22)',
+      borderWidth: 1,
+      titleColor: '#f2f6fa',
+      bodyColor: '#c3cedd',
+      padding: 10,
+      cornerRadius: 8,
+      displayColors: false
+    }, extra || {});
+  }
+
+  /* Render a chart only once its container is on screen, so the
+     canvas has a settled size and cannot enter a resize feedback loop. */
+  function whenVisible(el, fn) {
+    if (!el) return;
+    var o = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { o.disconnect(); fn(); } });
+    }, { threshold: 0.05 });
+    o.observe(el);
+  }
+
+  /* ── Chart 1: overall scores ─────────────────────────────────── */
+  var overallEl = document.getElementById('overallChart');
+  whenVisible(overallEl, function () {
+    var rows = [
+      ['PlotTwist', 8.36], ['Claude Sonnet 4', 8.35], ['Agents’ Room', 8.25],
+      ['GPT-4.1', 8.16], ['Gemini 2.0 Flash', 8.11], ['Qwen3-32B', 7.90],
+      ['Qwen-2.5-14B', 7.62], ['DeepSeek-R1-14B', 7.60], ['Mistral Small 24B', 7.60],
+      ['Llama-3.3-70B', 7.18], ['WizardLM-30B', 6.78], ['Phi-4 Mini', 6.58]
+    ];
+    new Chart(overallEl.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: rows.map(function (r) { return r[0]; }),
+        datasets: [{
+          data: rows.map(function (r) { return r[1]; }),
+          backgroundColor: rows.map(function (r) { return r[0] === 'PlotTwist' ? TEAL : GREY; }),
+          borderColor: rows.map(function (r) { return r[0] === 'PlotTwist' ? TEAL_L : 'rgba(148,163,184,.3)'; }),
+          borderWidth: 1, borderRadius: 5, borderSkipped: false, barThickness: 'flex', maxBarThickness: 22
+        }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        layout: { padding: { right: 14 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: tip({ callbacks: { label: function (c) { return 'Overall jury score: ' + c.parsed.x.toFixed(2); } } })
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: c => ` NQD Score: ${c.parsed.y.toFixed(2)}` } }
+        scales: {
+          x: {
+            min: 6, max: 8.8,
+            grid: { color: GRID }, border: { display: false },
+            title: { display: true, text: 'Overall jury score, mean of five dimensions', color: '#64748b', font: { size: 10.5 } }
           },
-          scales: {
-            y: {
-              min: 6.5, max: 9.2,
-              ticks: { font: { family: 'Inter', size: 11 }, color: '#9ca3af' },
-              grid: { color: 'rgba(55,65,81,.7)' },
-              title: { display: true, text: 'NQD Score (avg. across 5 dimensions)', font: { family: 'Inter', size: 11 }, color: '#6b7280' }
-            },
-            x: {
-              ticks: { font: { family: 'Inter', size: 11 }, color: '#9ca3af' },
-              grid: { display: false }
-            }
+          y: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11.5 } } }
+        }
+      }
+    });
+  });
+
+  /* ── Chart 2: radar across dimensions ────────────────────────── */
+  var radarEl = document.getElementById('radarChart');
+  whenVisible(radarEl, function () {
+    new Chart(radarEl.getContext('2d'), {
+      type: 'radar',
+      data: {
+        labels: ['Character\nDevelopment', 'Tone\nConsistency', 'Pacing', 'Narrative\nCoherence', 'Emotional\nTurning Points'],
+        datasets: [
+          { label: 'PlotTwist', data: [8.11, 8.42, 8.14, 8.51, 8.61],
+            borderColor: TEAL_L, backgroundColor: 'rgba(20,184,166,.18)',
+            pointBackgroundColor: TEAL_L, pointRadius: 3.5, borderWidth: 2 },
+          { label: 'Claude Sonnet 4', data: [8.30, 8.23, 8.09, 8.49, 8.63],
+            borderColor: '#e6b980', backgroundColor: 'rgba(230,185,128,.09)',
+            pointBackgroundColor: '#e6b980', pointRadius: 2.5, borderWidth: 1.5 },
+          { label: 'GPT-4.1', data: [7.88, 8.14, 7.99, 8.37, 8.41],
+            borderColor: '#94a3b8', backgroundColor: 'rgba(148,163,184,.06)',
+            pointBackgroundColor: '#94a3b8', pointRadius: 2.5, borderWidth: 1.5 },
+          { label: 'Agents’ Room', data: [8.15, 8.15, 7.97, 8.40, 8.57],
+            borderColor: '#64748b', backgroundColor: 'rgba(100,116,139,.05)',
+            pointBackgroundColor: '#64748b', pointRadius: 2.5, borderWidth: 1.5, borderDash: [4, 3] }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 16, usePointStyle: true, pointStyle: 'circle' } },
+          tooltip: tip({ displayColors: true, callbacks: { label: function (c) { return c.dataset.label + ': ' + c.parsed.r.toFixed(2); } } })
+        },
+        scales: {
+          r: {
+            min: 7.5, max: 8.8,
+            grid: { color: GRID }, angleLines: { color: GRID },
+            pointLabels: { font: { size: 10.5 }, color: '#8593a7' },
+            ticks: { stepSize: 0.4, backdropColor: 'transparent', color: '#475569', font: { size: 9.5 } }
           }
         }
-      });
-    })();
+      }
+    });
+  });
 
-    /* Copy BibTeX */
-    function copyBibtex() {
-      const text = `@article{thorat2026plottwist,\n  title     = {PlotTwist: A Creative Plot Generation Framework with Small Language Models},\n  author    = {Thorat, Abhinav and Kolla, Ravi and Goel, Jyotin and Pedanekar, Niranjan},\n  journal   = {arXiv preprint arXiv:2603.16410},\n  year      = {2026}\n}`;
-      navigator.clipboard.writeText(text).then(() => {
-        const btn = document.getElementById('copyBtn');
+  /* ── Chart 3: quality strata ─────────────────────────────────── */
+  var strataEl = document.getElementById('strataChart');
+  whenVisible(strataEl, function () {
+    new Chart(strataEl.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: ['Excellent\nIMDb > 8', 'Good\n7 to 8', 'Mid\n6 to 7', 'Low\nIMDb ≤ 6'],
+        datasets: [
+          { label: 'Original plot', data: [8.14, 7.75, 7.40, 7.01],
+            backgroundColor: GREY, borderColor: 'rgba(148,163,184,.3)',
+            borderWidth: 1, borderRadius: 5, borderSkipped: false, maxBarThickness: 46 },
+          { label: 'PlotTwist generated', data: [8.45, 8.40, 8.37, 8.28],
+            backgroundColor: TEAL, borderColor: TEAL_L,
+            borderWidth: 1, borderRadius: 5, borderSkipped: false, maxBarThickness: 46 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 16, usePointStyle: true, pointStyle: 'circle' } },
+          tooltip: tip({ displayColors: true, callbacks: { label: function (c) { return c.dataset.label + ': ' + c.parsed.y.toFixed(2); } } })
+        },
+        scales: {
+          y: {
+            min: 6.5, max: 8.8,
+            grid: { color: GRID }, border: { display: false },
+            title: { display: true, text: 'Overall jury score', color: '#64748b', font: { size: 10.5 } }
+          },
+          x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10.5 } } }
+        }
+      }
+    });
+  });
+
+  /* ── Copy BibTeX ─────────────────────────────────────────────── */
+  var COPY_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  var OK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+  var btn = document.getElementById('copyBtn');
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var text = document.getElementById('bibtexBlock').innerText;
+      navigator.clipboard.writeText(text).then(function () {
         btn.classList.add('copied');
-        btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
-        setTimeout(() => {
+        btn.innerHTML = OK_SVG + ' Copied';
+        setTimeout(function () {
           btn.classList.remove('copied');
-          btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
+          btn.innerHTML = COPY_SVG + ' Copy';
         }, 2200);
       });
-    }
-  </script>
+    });
+  }
+})();
+</script>
 </body>
 </html>
